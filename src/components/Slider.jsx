@@ -1,6 +1,7 @@
 
 // Import Swiper React components
 import { Swiper, SwiperSlide } from 'swiper/react';
+import axios from 'axios';
 
 // Import Swiper styles
 import 'swiper/css';
@@ -22,6 +23,7 @@ export default function Slider() {
 
     async function getImages(){
         setLoading(true);
+
         
       }
 
