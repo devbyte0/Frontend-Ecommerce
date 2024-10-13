@@ -13,6 +13,9 @@ import AdminDashBoard from "../pages/AdminDashBoard";
 import Dashboard from "../pages/Dashboard";
 import AdminCrudPage from "../pages/AdminCrudPage";
 
+import AdminProfile from "../pages/AdminProfile";
+
+
 
 
   export const router = createBrowserRouter([{
@@ -64,6 +67,11 @@ import AdminCrudPage from "../pages/AdminCrudPage";
         {
           path:"/admin/dashboard/admins",
           element:<AdminCrudPage/>
+        },
+        {
+          path:"/admin/dashboard/profile",
+          element:<AdminProfile/>
+
         }
       ]
     }
