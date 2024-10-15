@@ -14,6 +14,12 @@ import Dashboard from "../pages/Dashboard";
 import AdminCrudPage from "../pages/AdminCrudPage";
 
 import AdminProfile from "../pages/AdminProfile";
+import UserCrudPage from "../pages/UserCrudPage";
+import ProductAdminPage from "../pages/ProductAdminPage";
+import ChatList from "../pages/ChatList";
+import MessagePage from "../pages/MessagePage";
+import ProductCRUDPage from "../pages/ProductCrudPage";
+
 
 
 
@@ -53,11 +59,11 @@ import AdminProfile from "../pages/AdminProfile";
     element:<AdminLayout/>,
     children:[
       {
-        path:"/admin/login",
+        path:"/admin",
         element:<AdminLogin/>
     },
     {
-      path:"/admin/dashboard",
+      path:"/admin",
       element:<AdminDashBoard/>,
       children:[
         {
@@ -65,14 +71,40 @@ import AdminProfile from "../pages/AdminProfile";
          element:<Dashboard/>
         },
         {
-          path:"/admin/dashboard/admins",
+          path:"/admin/admins",
           element:<AdminCrudPage/>
         },
         {
-          path:"/admin/dashboard/profile",
+          path:"/admin/profile",
           element:<AdminProfile/>
 
+        },
+        {
+          path:"/admin/users",
+          element:<UserCrudPage/>
+
+        },
+        {
+          path:"/admin/products",
+          element:<ProductAdminPage/>
+
+        },
+        {
+          path:"/admin/inbox",
+          element:<ChatList/>
+
+        },
+        {
+          path:"/admin/inbox/:id",
+          element:<MessagePage/>
+
+        },
+        {
+          path:"/admin/products/products",
+          element:<ProductCRUDPage/>
+
         }
+        
       ]
     }
   ]
