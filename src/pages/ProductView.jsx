@@ -79,6 +79,7 @@ const ProductView = () => {
       // Listen for viewer count updates
       socketRef.current.on('viewerCountUpdate', (count) => {
         setViewers(count);
+        console.log(count)
       });
   
       // Cleanup the socket connection when the component unmounts
