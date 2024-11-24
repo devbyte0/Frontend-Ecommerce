@@ -8,8 +8,7 @@ const ProductAdminPage = () => {
     { name: 'Categories', icon: '📦' },
     { name: 'Colors', icon: '🎨' },
     { name: 'Sizes', icon: '📏' },
-    { name: 'Person Type', icon: '👤' },
-    { name: 'Delivery', icon: '🚚' },
+    { name: 'Gender', icon: '👤' },
     { name: 'Badges', icon: '🏷️' },
     { name: 'Coupons', icon: '💸' },
     { name: 'Slides', icon: '🖼️' },       // New Menu Item
@@ -23,7 +22,7 @@ const ProductAdminPage = () => {
 
       {/* Square-shaped menu styled as a box */}
       <div className="p-4 border-2 border-gray-200 border-dashed rounded-lg dark:border-gray-700 mb-8 w-full max-w-5xl">
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-1 md:grid-cols-2 gap-2">
           {menuItems.map((item) => (
             <div
               key={item.name}

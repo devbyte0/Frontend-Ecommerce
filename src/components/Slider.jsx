@@ -1,89 +1,67 @@
-
-// Import Swiper React components
+import React, { useEffect, useState } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import axios from 'axios';
-
-// Import Swiper styles
 import 'swiper/css';
 import 'swiper/css/effect-coverflow';
 import 'swiper/css/pagination';
-
-
-// import required modules
-
-import {  Autoplay,EffectCoverflow, Pagination } from 'swiper/modules';
-import { useEffect, useState } from 'react';
+import { Autoplay, Pagination } from 'swiper/modules';
 import SliderImages from './SliderImages';
+import axios from 'axios';
 
-export default function Slider() {
+const Slider = () => {
+    const [slides, setSlides] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
 
-    const [NewData,setNewData] = useState([]);
+    useEffect(() => {
+        const fetchSlides = async () => {
+            setLoading(true);
+            setError(null);
+            try {
+                const response = await axios.get(`${import.meta.env.VITE_API_URI}/api/slides`);
+                setSlides(response.data);
+            } catch (err) {
+                setError('Failed to load slides.');
+                console.error("Error fetching slides:", err);
+            } finally {
+                setLoading(false);
+            }
+        };
 
-    const [Loading,setLoading] = useState(true);
+        fetchSlides();
+    }, []);
 
-    async function getImages(){
-        setLoading(true);
+    if (loading) {
+        return <div className="text-center text-lg font-semibold">Loading...</div>;
+    }
 
-        
-      }
+    if (error) {
+        return <div className="text-center text-red-500 font-semibold">{error}</div>;
+    }
 
-      useEffect(() => {
-            getImages()
-      }, []);
-console.log(NewData)
-  return (
-    <>
-      <Swiper
-        autoplay={{
-            delay: 2500,
-            disableOnInteraction: false,
-          }}
-        slidesPerView={3}
-        breakpoints={{
-            300:{
-                slidesPerView: 1,
-                spaceBetween: 0,
-            },
-            640: {
-              slidesPerView: 1,
-              spaceBetween: 0,
-            },
-            768: {
-              slidesPerView: 3,
-              spaceBetween: 0,
-            },
-            1024: {
-              slidesPerView: 3,
-              spaceBetween: 0,
-            },
-          }}
-        centeredSlides={true}
-        spaceBetween={0}
-        loop={true}
-        effect={'coverflow'}
-        grabCursor={true}
-        
-        
-        coverflowEffect={{
-          rotate: 50,
-          stretch: 0,
-          depth: 100,
-          modifier: 1,
-          slideShadows: true,
-        }}
-        pagination={true}
-        modules={[Autoplay,EffectCoverflow, Pagination]}
-        className="mySwiper"
-      >
-        
-         {
-            NewData.map((info) => (
-                <SwiperSlide className='flex items-center justify-center'><SliderImages key={info.id} ImageInfo={info}/></SwiperSlide>
-            ))
-          } 
-        
+    return (
+        <Swiper
+            autoplay={{
+                delay: 2500,
+                disableOnInteraction: false,
+            }}
+            loop={true}
+            grabCursor={true}
+            pagination={{ clickable: true }}
+            modules={[Autoplay, Pagination]}
+            className="mySwiper"
+            breakpoints={{
+                640: { slidesPerView: 1, spaceBetween: 10 },
+                768: { slidesPerView: 2, spaceBetween: 20 },
+                1024: { slidesPerView: 3, spaceBetween: 30 },
+            }}
+        >
+            {slides.map((slide) => (
+                <SwiperSlide key={slide._id} className="flex items-center justify-center">
+                    <SliderImages ImageInfo={slide} />
+                </SwiperSlide>
+            ))}
+        </Swiper>
+    );
+};
 
-      </Swiper>
-    </>
-  );
-}
+export default Slider;

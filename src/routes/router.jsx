@@ -4,9 +4,9 @@ import {
   import Home from "../pages/Home";
   import ContactUs from "../pages/ContactUs";
   import Login from "../pages/Login";
-  import SignIn from "../pages/SignIn";
+  import SignUp from "../pages/SignUp";
   import Layout from "../layout/Layout";
-import Products from "../pages/products";
+import Products from "../pages/Products";
 import AdminLayout from "../layout/AdminLayout";
 import AdminLogin from "../pages/AdminLogin";
 import AdminDashBoard from "../pages/AdminDashBoard";
@@ -19,6 +19,22 @@ import ProductAdminPage from "../pages/ProductAdminPage";
 import ChatList from "../pages/ChatList";
 import MessagePage from "../pages/MessagePage";
 import ProductCRUDPage from "../pages/ProductCrudPage";
+import ProductView from "../pages/ProductView";
+import ColorManagement from "../pages/Colors";
+import SizeManagement from "../pages/Sizes";
+import CategoryManagement from "../pages/Categories";
+import GenderManagement from "../pages/Gender";
+import ProductCreate from "../pages/ProductCreate";
+import BadgeManagement from "../pages/Badges";
+import ProductEdit from "../pages/ProductEdit";
+import CouponManagement from "../pages/Coupon";
+import CartPage from "../pages/Cart";
+import SliderManagement from "../pages/AdminSlides";
+import RelatedProductManagement from "../pages/RelatedProduct";
+import CheckoutPage from "../pages/Checkout";
+import UserProfile from "../pages/User";
+import UserLayout from "../pages/UserLayout";
+
 
 
 
@@ -40,7 +56,14 @@ import ProductCRUDPage from "../pages/ProductCrudPage";
           path:"/products",
           element:<Products/>
             
-        },
+        }
+        ,
+        {
+          path:"/products/:id",
+          element:<ProductView/>
+            
+        }
+        ,
         {
             path: "/contactus",
             element: <ContactUs/>
@@ -50,9 +73,27 @@ import ProductCRUDPage from "../pages/ProductCrudPage";
             element: <Login/>
         },
         {
-            path: "/signin",
-            element: <SignIn/>
+            path: "/signup",
+            element: <SignUp/>
         },
+        {
+            path: "/cart",
+            element: <CartPage/>
+        },
+        {
+            path: "/checkout",
+            element: <CheckoutPage/>
+        },
+        {
+            path: "/profile",
+            element: <UserLayout/>,
+            children:[
+              {
+                path:"/profile",
+                element:<UserProfile/>
+            },
+            ]
+        }
     ]
   },{
     path:"/admin",
@@ -102,6 +143,57 @@ import ProductCRUDPage from "../pages/ProductCrudPage";
         {
           path:"/admin/products/products",
           element:<ProductCRUDPage/>
+
+        },
+        
+        {
+          path:"/admin/products/products/:id",
+          element:<ProductEdit/>
+
+        },
+        {
+          path:"/admin/products/colors",
+          element:<ColorManagement/>
+
+        },
+        {
+          path:"/admin/products/sizes",
+          element:<SizeManagement/>
+
+        },
+        {
+          path:"/admin/products/categories",
+          element:<CategoryManagement/>
+
+        },
+        {
+          path:"/admin/products/gender",
+          element:<GenderManagement/>
+
+        },
+        {
+          path:"/admin/products/products/createproducts",
+          element:<ProductCreate/>
+
+        },
+        {
+          path:"/admin/products/badges",
+          element:<BadgeManagement/>
+
+        },
+        {
+          path:"/admin/products/coupons",
+          element:<CouponManagement/>
+
+        },
+        {
+          path:"/admin/products/slides",
+          element:<SliderManagement/>
+
+        },
+        {
+          path:"/admin/products/related",
+          element:<RelatedProductManagement/>
 
         }
         

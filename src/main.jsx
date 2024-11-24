@@ -6,10 +6,11 @@ import "./index.css";
 import { router } from './routes/router.jsx';
 
 
+
 ReactDOM.createRoot(document.getElementById('root')).render(
-  <React.StrictMode>
-    <NextUIProvider>
-    <RouterProvider router={router} />
-    </NextUIProvider>
-  </React.StrictMode>,
+  <>
+  <NextUIProvider>
+    <RouterProvider router={router} />  
+  </NextUIProvider>
+  </>
 )
