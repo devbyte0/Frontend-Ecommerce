@@ -71,7 +71,9 @@ const ProductView = () => {
     fetchProduct();
     
       // Initialize socket connection
-      socketRef.current = io(`${import.meta.env.VITE_API_URI}`); // Set the socket reference
+      socketRef.current = io(`${import.meta.env.VITE_API_URI}`,{
+        transports: ['websocket', 'polling'],
+      }); // Set the socket reference
 
       // Join the product room
       socketRef.current.emit('joinProduct', id);
