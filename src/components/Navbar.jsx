@@ -27,7 +27,7 @@ export default function PixaNavbar() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:3000/api/products")
+      .get(`${import.meta.env.VITE_API_URI}/api/products`)
       .then((response) => {
         setProducts(response.data);
       })
