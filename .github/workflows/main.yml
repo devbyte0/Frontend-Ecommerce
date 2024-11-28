@@ -9,7 +9,7 @@ env:
   VITE_STORAGEBUCKET: ${{ secrets.VITE_STORAGEBUCKET }}
   VITE_MESSAGINGSENDERID: ${{ secrets.VITE_MESSAGINGSENDERID }}
   VITE_APPID: ${{ secrets.VITE_APPID }}
-  VITE_API_URI: https://backend-test-csb3.onrender.com
+  VITE_API_URI:  ${{ secrets.VITE_API_URI }}
 
 name: 🚀 Deploy website on push
 jobs:
