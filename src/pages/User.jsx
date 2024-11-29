@@ -1,15 +1,12 @@
-// UserProfile.js
-import React, { useContext, useState } from "react";
-import { UserContext } from "../context/UserContext";
-import { FaEdit, FaCheck, FaTimes, FaBox, FaInbox, FaTrash } from "react-icons/fa";
+import React, { useState, useContext } from "react";
+import { UserContext } from "../context/UserContext"; // Adjust the path to your context file
+import { FaEdit, FaSave, FaTimes } from "react-icons/fa";
 
-// Sidebar component
-
-
-export default function UserProfile() {
-  const { user, updateProfile, authRequest, logout } = useContext(UserContext);
-  const [isEditing, setIsEditing] = useState({});
+const UserProfile = () => {
+  const { user, authRequest, updateProfile } = useContext(UserContext); // Assumes UserContext provides these
   const [formData, setFormData] = useState(user || {});
+  const [isEditing, setIsEditing] = useState({});
+  const [loading, setLoading] = useState(false);
 
   const toggleEditing = (field) => {
     setIsEditing((prev) => ({ ...prev, [field]: !prev[field] }));
@@ -17,160 +14,178 @@ export default function UserProfile() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData({ ...formData, [name]: value });
+    setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
   const saveChanges = async (field) => {
+    setLoading(true);
     try {
-      const updatedData = await authRequest(`${import.meta.env.VITE_API_URI}/api/users/${user._id}`, {
+      const updatedUser = await authRequest(`/api/users/${user._id}`, {
         method: "PUT",
         data: { [field]: formData[field] },
       });
-      updateProfile(updatedData);
+      updateProfile(updatedUser);
       setIsEditing((prev) => ({ ...prev, [field]: false }));
     } catch (error) {
-      console.error("Error updating user data:", error);
+      console.error("Failed to update user profile:", error);
+      alert("Could not save changes. Please try again.");
     }
+    setLoading(false);
   };
-
-  const deleteAccount = async () => {
-    if (window.confirm("Are you sure you want to delete your account? This action is irreversible.")) {
-      try {
-        await authRequest(`${import.meta.env.VITE_API_URI}/api/users/${user._id}`, { method: "DELETE" });
-        logout();
-      } catch (error) {
-        console.error("Error deleting account:", error);
-      }
-    }
-  };
-
-  if (!user) {
-    return <div className="text-center text-gray-500">Loading user data...</div>;
-  }
 
   return (
-    <div className="flex min-h-screen bg-gray-100">
-      
-      <div className="flex-grow p-6">
-        <div className="bg-white rounded-xl shadow-md p-6 w-full max-w-lg mx-auto">
-          <div className="flex flex-col items-center">
-            <div className="relative mb-4">
-              <img
-                src={user.imageUrl || "/default-avatar.png"}
-                alt={`${user.firstName} ${user.lastName}`}
-                className="w-24 h-24 rounded-full object-cover border-2 border-gray-200 shadow-sm"
-              />
-              <button
-                onClick={() => toggleEditing("imageUrl")}
-                className="absolute bottom-2 right-2 bg-gray-800 rounded-full p-2 text-white"
-              >
-                <FaEdit />
-              </button>
+    <div className="max-w-4xl mx-auto p-6 bg-gray-100 min-h-screen">
+      <h1 className="text-3xl font-bold mb-8 text-gray-700">My Profile</h1>
+      <div className="bg-white shadow-md rounded-lg p-6">
+        <h2 className="text-xl font-semibold mb-4 text-gray-600">Personal Information</h2>
+        <div className="space-y-4">
+          {["firstName", "lastName", "email", "userName"].map((field) => (
+            <div key={field}>
+              <label className="block text-sm font-medium text-gray-600 capitalize">
+                {field.replace(/([A-Z])/g, " $1")}
+              </label>
+              {isEditing[field] ? (
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    name={field}
+                    value={formData[field]}
+                    onChange={handleChange}
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <button
+                    className="ml-3 text-green-600 hover:text-green-800"
+                    onClick={() => saveChanges(field)}
+                    disabled={loading}
+                  >
+                    <FaSave />
+                  </button>
+                  <button
+                    className="ml-2 text-red-600 hover:text-red-800"
+                    onClick={() => toggleEditing(field)}
+                  >
+                    <FaTimes />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex justify-between">
+                  <span>{formData[field]}</span>
+                  <button
+                    className="text-blue-500 hover:text-blue-700"
+                    onClick={() => toggleEditing(field)}
+                  >
+                    <FaEdit />
+                  </button>
+                </div>
+              )}
             </div>
-            <h2 className="text-2xl font-semibold text-gray-800">
-              {isEditing.firstName ? (
-                <input
-                  type="text"
-                  name="firstName"
-                  value={formData.firstName}
-                  onChange={handleChange}
-                  className="border p-1 rounded w-full text-center"
-                />
-              ) : (
-                user.firstName
-              )}
-              {" "}
-              {isEditing.lastName ? (
-                <input
-                  type="text"
-                  name="lastName"
-                  value={formData.lastName}
-                  onChange={handleChange}
-                  className="border p-1 rounded w-full text-center"
-                />
-              ) : (
-                user.lastName
-              )}
-              <button onClick={() => toggleEditing("firstName")} className="ml-2">
-                <FaEdit className="text-gray-500 inline" />
-              </button>
-            </h2>
-          </div>
-          <div className="space-y-6 mt-6">
-            <EditableField
-              label="Username"
-              name="userName"
-              value={formData.userName}
-              isEditing={isEditing.userName}
-              toggleEditing={() => toggleEditing("userName")}
-              handleChange={handleChange}
-              saveChanges={() => saveChanges("userName")}
-            />
-            <EditableField
-              label="Email"
-              name="email"
-              value={formData.email}
-              isEditing={isEditing.email}
-              toggleEditing={() => toggleEditing("email")}
-              handleChange={handleChange}
-              saveChanges={() => saveChanges("email")}
-            />
-            <EditableField
-              label="Address"
-              name="address"
-              value={`${user.savedAddress?.street}, ${user.savedAddress?.city}`}
-              isEditing={isEditing.address}
-              toggleEditing={() => toggleEditing("address")}
-              handleChange={handleChange}
-              saveChanges={() => saveChanges("address")}
-            />
-          </div>
+          ))}
         </div>
-      </div>
-    </div>
-  );
-}
 
-// EditableField component remains the same as in the previous code example
-const EditableField = ({
-  label,
-  name,
-  value,
-  isEditing,
-  toggleEditing,
-  handleChange,
-  saveChanges,
-}) => {
-  return (
-    <div className="flex items-center justify-between bg-gray-50 p-4 rounded-lg shadow-sm">
-      <div className="w-3/4">
-        <label className="font-medium text-gray-600">{label}</label>
-        {isEditing ? (
-          <input
-            type="text"
-            name={name}
-            value={value}
-            onChange={handleChange}
-            className="border-b mt-1 p-1 w-full text-gray-700 focus:outline-none"
-          />
-        ) : (
-          <p className="text-gray-800 mt-1">{value}</p>
-        )}
-      </div>
-      {isEditing ? (
-        <div className="flex space-x-2">
-          <button onClick={saveChanges} className="text-green-500 p-1">
-            <FaCheck />
-          </button>
-          <button onClick={toggleEditing} className="text-red-500 p-1">
-            <FaTimes />
-          </button>
+        {/* Address Section */}
+        <h2 className="text-xl font-semibold mt-6 mb-4 text-gray-600">Address</h2>
+        <div className="space-y-4">
+          {["street", "city", "state", "zipCode", "country"].map((field) => (
+            <div key={field}>
+              <label className="block text-sm font-medium text-gray-600 capitalize">
+                {field.replace(/([A-Z])/g, " $1")}
+              </label>
+              {isEditing[field] ? (
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    name={`address.${field}`}
+                    value={formData.address?.[field] || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        address: { ...prev.address, [field]: e.target.value },
+                      }))
+                    }
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <button
+                    className="ml-3 text-green-600 hover:text-green-800"
+                    onClick={() => saveChanges("address")}
+                    disabled={loading}
+                  >
+                    <FaSave />
+                  </button>
+                  <button
+                    className="ml-2 text-red-600 hover:text-red-800"
+                    onClick={() => toggleEditing(field)}
+                  >
+                    <FaTimes />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex justify-between">
+                  <span>{formData.address?.[field] || "N/A"}</span>
+                  <button
+                    className="text-blue-500 hover:text-blue-700"
+                    onClick={() => toggleEditing(field)}
+                  >
+                    <FaEdit />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
-      ) : (
-        <button onClick={toggleEditing} className="text-gray-500 p-1">
-          <FaEdit />
-        </button>
-      )}
+
+        {/* Payment Method Section */}
+        <h2 className="text-xl font-semibold mt-6 mb-4 text-gray-600">Payment Method</h2>
+        <div className="space-y-4">
+          {["cardNumber", "expiryDate", "cardHolderName"].map((field) => (
+            <div key={field}>
+              <label className="block text-sm font-medium text-gray-600 capitalize">
+                {field.replace(/([A-Z])/g, " $1")}
+              </label>
+              {isEditing[field] ? (
+                <div className="flex items-center">
+                  <input
+                    type="text"
+                    name={`paymentMethod.${field}`}
+                    value={formData.paymentMethod?.[field] || ""}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        paymentMethod: { ...prev.paymentMethod, [field]: e.target.value },
+                      }))
+                    }
+                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <button
+                    className="ml-3 text-green-600 hover:text-green-800"
+                    onClick={() => saveChanges("paymentMethod")}
+                    disabled={loading}
+                  >
+                    <FaSave />
+                  </button>
+                  <button
+                    className="ml-2 text-red-600 hover:text-red-800"
+                    onClick={() => toggleEditing(field)}
+                  >
+                    <FaTimes />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex justify-between">
+                  <span>{formData.paymentMethod?.[field] || "N/A"}</span>
+                  <button
+                    className="text-blue-500 hover:text-blue-700"
+                    onClick={() => toggleEditing(field)}
+                  >
+                    <FaEdit />
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 };
+
+export default UserProfile;

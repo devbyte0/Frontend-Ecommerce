@@ -4,7 +4,7 @@ import PropTypes from "prop-types";
 
 const UserSidebar = ({ onDeleteAccount, isOpen }) => (
   <div
-    className={`fixed top-18 left-0 w-48 bg-gray-100 p-4 h-full shadow-lg z-50 transition-transform transform ${
+    className={`fixed top-18 left-0 w-48 bg-gray-100 p-4 h-full shadow-lg  transition-transform transform ${
       isOpen ? "translate-x-0" : "-translate-x-full"
     } md:relative md:translate-x-0 md:min-h-screen`} // Absolute on mobile, relative on desktop
   >

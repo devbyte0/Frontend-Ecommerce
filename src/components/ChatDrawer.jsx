@@ -8,6 +8,7 @@ const ChatDrawer = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState([]);
   const [inputMessage, setInputMessage] = useState('');
+  const [isFirstMessage, setIsFirstMessage] = useState(true); // Track if it's the first message
 
   const toggleChat = () => {
     setIsOpen(!isOpen);
@@ -15,6 +16,11 @@ const ChatDrawer = () => {
 
   const closeChat = () => {
     setIsOpen(false);
+  };
+
+  const generateSupportResponse = (customerMessage) => {
+    // You can add logic to generate dynamic responses
+    return 'Thank you for reaching out! How can we assist you today?';
   };
 
   const handleSendMessage = () => {
@@ -29,17 +35,21 @@ const ChatDrawer = () => {
       setMessages((prevMessages) => [...prevMessages, newMessage]);
       setInputMessage('');
 
-      // Simulate a response from the support team
-      setTimeout(() => {
-        const supportMessage = {
-          text: 'Thank you for your message!',
-          sender: 'support',
-          timestamp: new Date().toLocaleTimeString(),
-          reaction: '',
-          account: 'Barvella',
-        };
-        setMessages((prevMessages) => [...prevMessages, supportMessage]);
-      }, 1000);
+      // If it's the first message, send an auto-response
+      if (isFirstMessage) {
+        setIsFirstMessage(false); // Mark as not the first message anymore
+        setTimeout(() => {
+          const supportMessage = {
+            text: generateSupportResponse(inputMessage),
+            sender: 'support',
+            timestamp: new Date().toLocaleTimeString(),
+            reaction: '',
+            account: 'Barvella',
+          };
+          setMessages((prevMessages) => [...prevMessages, supportMessage]);
+        }, 1000);
+      }
+
     } else {
       toast.error('Please enter a message', {
         position: 'top-center',
@@ -70,7 +80,7 @@ const ChatDrawer = () => {
         Chat
       </button>
       {isOpen && (
-        <div className="fixed bottom-20 right-0 bg-white border-l shadow-lg w-full  sm:w-80 h-[60%] sm:h-96 flex flex-col">
+        <div className="fixed bottom-20 right-0 bg-white border-l shadow-lg w-full sm:w-80 h-[60%] sm:h-96 flex flex-col">
           <div className="flex justify-between items-center p-4 border-b">
             <h3 className="font-bold text-lg">Customer Support - Barvella</h3>
             <button onClick={closeChat} className="text-gray-500 hover:text-gray-800">

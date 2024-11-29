@@ -40,6 +40,7 @@ const Slider = () => {
 
     return (
         <Swiper
+        
             autoplay={{
                 delay: 2500,
                 disableOnInteraction: false,
