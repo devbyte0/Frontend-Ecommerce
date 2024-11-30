@@ -23,7 +23,7 @@ const MobileTabBar = () => {
         <span className="text-xs">Contact Us</span>
       </NavLink>
       <NavLink
-        to={isLoggedIn ? "/user/:id" : "/login"}
+        to={isLoggedIn ? "/profile" : "/login"}
         className="flex flex-col items-center text-gray-600 hover:text-black"
       >
         <FaUserAlt size={24} />
