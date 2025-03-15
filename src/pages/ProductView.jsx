@@ -156,12 +156,14 @@ const ProductView = () => {
   const handleAddToCart = () => {
 
     const productToAdd = {
-      productId: selectedVariant._id,
+      variantId: selectedVariant._id,
+      productId: id,
       name: product.name,
       mainImage,
       price: selectedDiscountPrice? selectedDiscountPrice:product.discountPrice,
       size: selectedSize,
-      colorName: selectedVariant.colorName
+      colorName: selectedVariant.colorName,
+      quantity: 1
     };
     addToCart(productToAdd);
     toast.success('Add To Cart Successfull', {

@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
@@ -8,6 +8,8 @@ export const UserContext = createContext();
 // UserProvider component
 export const UserProvider = ({ children }) => {
     const navigate = useNavigate();
+
+    
 
     const [user, setUser] = useState(null);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -43,11 +45,13 @@ export const UserProvider = ({ children }) => {
             setIsLoggedIn(true);
             setSavedAddress(user.savedAddress || null);
             setSavedPaymentMethod(user.savedPaymentMethod || null);
+            
 
             localStorage.setItem('user', JSON.stringify(user));
             localStorage.setItem('accessToken', accessToken);
             localStorage.setItem('refreshToken', refreshToken);
             setRedirectPath('/');
+            
         } catch (error) {
             console.error("Login error:", error);
             setErrorMessage(error.response?.data?.message || 'Login failed');
