@@ -1,39 +1,24 @@
 import React, { useContext, useState, useEffect } from "react";
 import axios from "axios";
-import {
-  Navbar,
-  NavbarBrand,
-  NavbarMenuToggle,
-  NavbarMenuItem,
-  NavbarMenu,
-  NavbarContent,
-  NavbarItem,
-  Button,
-  Input,
-} from "@nextui-org/react";
-import { NavLink } from "react-router-dom";
-import { FaShoppingCart, FaSearch, FaUser, FaSignOutAlt } from "react-icons/fa"; // Import FaSignOutAlt for logout icon
+import { NavLink, useNavigate } from "react-router-dom";
+import { FaShoppingCart, FaSearch, FaUser, FaSignOutAlt, FaBars } from "react-icons/fa";
 import { CartContext } from "../context/CartContext";
 import { UserContext } from "../context/UserContext";
 
-export default function PixaNavbar() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const { cartItems } = useContext(CartContext);
-  const { isLoggedIn, logout } = useContext(UserContext);
+export default function AmazonNavbar() {
   const [searchQuery, setSearchQuery] = useState("");
   const [products, setProducts] = useState([]);
   const [showDropdown, setShowDropdown] = useState(false);
-  const menuItems = ["Home", "Products", "ContactUs"];
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const { cartItems } = useContext(CartContext);
+  const { isLoggedIn, logout } = useContext(UserContext);
+  const navigate = useNavigate();
 
   useEffect(() => {
     axios
       .get(`${import.meta.env.VITE_API_URI}/api/products`)
-      .then((response) => {
-        setProducts(response.data);
-      })
-      .catch((error) => {
-        console.error("Error fetching products:", error);
-      });
+      .then((response) => setProducts(response.data))
+      .catch((error) => console.error("Error fetching products:", error));
   }, []);
 
   const filteredProducts = products.filter((product) => {
@@ -55,62 +40,63 @@ export default function PixaNavbar() {
     setSearchQuery("");
   };
 
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      navigate(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setShowDropdown(false);
+    }
+  };
+
   return (
-    <>
-      <Navbar isBordered isMenuOpen={isMenuOpen} onMenuOpenChange={setIsMenuOpen}>
-        <NavbarContent className="sm:hidden" style={{ flexGrow: "0" }} justify="start">
-          <NavbarMenuToggle aria-label={isMenuOpen ? "Close menu" : "Open menu"} />
-        </NavbarContent>
-        <NavbarContent className="hidden sm:flex pr-3" justify="center">
-          <NavbarBrand>
-            <p className="font-bold text-inherit hidden">Barvella</p>
-          </NavbarBrand>
-        </NavbarContent>
-        <NavbarContent className="hidden sm:flex gap-4" justify="center">
-          <NavbarBrand>
-            <p className="font-bold text-inherit">Barvella</p>
-          </NavbarBrand>
-          {menuItems.map((item, index) => (
-            <NavbarItem key={index}>
-              <NavLink
-                to={`/${item.toLowerCase()}`}
-                style={({ isActive }) => ({
-                  fontWeight: isActive ? "bold" : "",
-                  color: isActive ? "red" : "black",
-                })}
-              >
-                {item}
-              </NavLink>
-            </NavbarItem>
-          ))}
-        </NavbarContent>
-        <NavbarContent justify="end" className="flex items-center gap-4">
-          <NavbarItem className="relative w-full">
-            <Input
+    <nav className="bg-[#232f3e] text-white shadow-lg sticky top-0 z-50">
+      <div className="flex items-center justify-between px-4 py-2 max-w-screen-xl mx-auto">
+        {/* Logo - hidden on mobile/tablet */}
+        <NavLink
+          to="/"
+          className="hidden lg:flex items-center gap-2"
+        >
+          <img src="/amazon-logo.png" alt="Logo" className="h-8 w-auto" />
+          <span className="font-bold text-xl text-yellow-400 tracking-wide">
+            Barvella
+          </span>
+        </NavLink>
+
+        {/* Search Bar - always visible */}
+        <form
+          className="flex-1 mx-6 max-w-2xl relative flex"
+          onSubmit={handleSearchSubmit}
+        >
+          <div className="w-full relative">
+            <input
               type="text"
-              placeholder="Search products..."
+              placeholder="Search products, brands and more"
               value={searchQuery}
               onChange={handleSearchChange}
-              startContent={<FaSearch />}
-              aria-label="Search products"
-              className="w-full"
+              className="w-full px-4 py-2 rounded-l bg-white text-gray-900 outline-none"
             />
+            <button
+              type="submit"
+              className="absolute right-0 top-0 h-full px-4 bg-yellow-400 hover:bg-yellow-500 rounded-r text-gray-900 font-bold"
+            >
+              <FaSearch />
+            </button>
             {showDropdown && (
-              <div className="absolute bg-white border rounded shadow-lg mt-1 left-0 right-0 w-full max-h-60 overflow-y-auto z-50">
+              <div className="absolute left-0 top-full mt-2 w-full bg-white border rounded shadow-lg z-50 max-h-60 overflow-y-auto">
                 {filteredProducts.length > 0 ? (
                   filteredProducts.map((product) => (
                     <NavLink
                       to={`/products/${product._id}`}
                       key={product._id}
                       onClick={handleProductClick}
-                      className="flex items-center gap-2 p-2 hover:bg-gray-100 w-full"
+                      className="flex items-center gap-2 p-2 hover:bg-yellow-100 w-full"
                     >
                       <img
                         src={product.mainImage}
                         alt={product.name}
                         className="w-10 h-10 object-cover rounded"
                       />
-                      <span>{product.name}</span>
+                      <span className="text-gray-800">{product.name}</span>
                     </NavLink>
                   ))
                 ) : (
@@ -118,91 +104,67 @@ export default function PixaNavbar() {
                 )}
               </div>
             )}
-          </NavbarItem>
+          </div>
+        </form>
 
+        {/* Navigation Links - hidden on mobile/tablet */}
+        <div className="hidden lg:flex items-center gap-6">
+          <NavLink
+            to="/products"
+            className="font-semibold text-white hover:text-yellow-400 transition"
+          >
+            Products
+          </NavLink>
+          <NavLink
+            to="/contactus"
+            className="font-semibold text-white hover:text-yellow-400 transition"
+          >
+            Contact Us
+          </NavLink>
           {isLoggedIn ? (
-            <NavbarItem className="hidden lg:flex">
-              <div className="flex gap-4">
-              <NavLink to="/profile">
-                <FaUser size={24} />
+            <div className="flex items-center gap-4">
+              <NavLink
+                to="/profile"
+                className="text-white hover:text-yellow-400"
+              >
+                <FaUser size={22} />
               </NavLink>
-              <button  onClick={logout}><FaSignOutAlt size={24} /></button>
-              </div>
-            </NavbarItem>
+              <button
+                onClick={logout}
+                className="text-white hover:text-red-400"
+              >
+                <FaSignOutAlt size={22} />
+              </button>
+            </div>
           ) : (
             <>
-              <NavbarItem className="hidden lg:flex">
-                <NavLink
-                  to="/login"
-                  style={({ isActive }) => ({
-                    fontWeight: isActive ? "bold" : "",
-                    color: isActive ? "red" : "black",
-                  })}
-                >
-                  Login
-                </NavLink>
-              </NavbarItem>
-              <NavbarItem className="hidden lg:flex">
-                <Button
-                  as={NavLink}
-                  color="warning"
-                  to="/signup"
-                  variant="flat"
-                  style={({ isActive }) => ({
-                    fontWeight: isActive ? "bold" : "",
-                    color: isActive ? "red" : "black",
-                  })}
-                >
-                  SignUp
-                </Button>
-              </NavbarItem>
+              <NavLink
+                to="/login"
+                className="font-semibold text-white hover:text-yellow-400 transition"
+              >
+                Login
+              </NavLink>
+              <NavLink
+                to="/signup"
+                className="bg-yellow-400 hover:bg-yellow-500 text-gray-900 px-4 py-1 rounded font-semibold transition"
+              >
+                Sign Up
+              </NavLink>
             </>
           )}
-
-          <NavbarItem className="hidden sm:flex">
-            <NavLink to="/cart" style={{ position: "relative", display: "flex", alignItems: "center" }}>
-              <FaShoppingCart size={24} />
-              {cartItems.length > 0 && (
-                <div
-                  style={{
-                    position: "absolute",
-                    top: "-5px",
-                    right: "-10px",
-                    backgroundColor: "red",
-                    color: "white",
-                    borderRadius: "50%",
-                    height: "18px",
-                    width: "18px",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    fontSize: "12px",
-                    fontWeight: "bold",
-                  }}
-                >
-                  {cartItems.length}
-                </div>
-              )}
-            </NavLink>
-          </NavbarItem>
-        </NavbarContent>
-        <NavbarMenu>
-          {menuItems.map((item, index) => (
-            <NavbarMenuItem key={`${item}-${index}`}>
-              <NavLink
-                to={`/${item.toLowerCase()}`}
-                className="w-full"
-                style={({ isActive }) => ({
-                  fontWeight: isActive ? "bold" : "",
-                  color: isActive ? "red" : "black",
-                })}
-              >
-                {item}
-              </NavLink>
-            </NavbarMenuItem>
-          ))}
-        </NavbarMenu>
-      </Navbar>
-    </>
+          <NavLink
+            to="/cart"
+            className="relative flex items-center"
+          >
+            <FaShoppingCart size={24} className="text-yellow-400" />
+            {cartItems.length > 0 && (
+              <span className="absolute -top-2 -right-3 bg-red-600 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs font-bold">
+                {cartItems.length}
+              </span>
+            )}
+          </NavLink>
+        </div>
+      </div>
+    </nav>
   );
 }

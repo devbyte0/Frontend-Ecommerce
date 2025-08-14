@@ -71,12 +71,19 @@ function Products() {
     // Filter by selected categories
     if (selectedCategories.length > 0) {
       filtered = filtered.filter((product) => {
-        // Parse the categories string into an array
-        let productCategories;
-        try {
-          productCategories = JSON.parse(product.categories);
-        } catch (error) {
-          productCategories = [];
+        let productCategories = [];
+        // Parse each category string if needed
+        if (Array.isArray(product.categories)) {
+          product.categories.forEach(cat => {
+            try {
+              const parsed = JSON.parse(cat);
+              if (Array.isArray(parsed)) {
+                productCategories = productCategories.concat(parsed);
+              }
+            } catch {
+              productCategories.push(cat);
+            }
+          });
         }
         return productCategories.some((category) =>
           selectedCategories.includes(category)
@@ -99,86 +106,171 @@ function Products() {
     getProducts(); // Fetch all products once
   }, []);
 
+  // Replace your main return block with this Amazon-inspired layout
   return (
-    <div className="flex mb-[50px] flex-col md:flex-row">
-      {/* Filter Icon for Mobile */}
-      <button
-        className="md:hidden mb-4 p-2 bg-blue-500 text-white rounded-md self-end"
-        onClick={() => setShowFilters(!showFilters)}
-      >
-        <FaFilter />
-      </button>
-
-      {/* Sidebar for Filters */}
-      <div
-        className={`w-full md:w-1/4 p-4 border-r mb-4 md:mb-0 ${
-          showFilters ? "block" : "hidden"
-        } md:block`}
-      >
-        {/* Categories Filter */}
-        <h2 className="text-xl font-bold mb-4">Filter by Category</h2>
-        {categories.length > 0 ? (
-          categories.map((category) => (
-            <label key={category._id} className="block mb-2">
-              <input
-                type="checkbox"
-                value={category.name}
-                checked={selectedCategories.includes(category.name)}
-                onChange={() => handleCategoryChange(category.name)}
-                className="mr-2"
-              />
-              {category.name}
-            </label>
-          ))
-        ) : (
-          <p>Loading categories...</p>
-        )}
-        {/* Genders Filter */}
-        <h2 className="text-xl font-bold mt-6 mb-4">Filter by Gender</h2>
-        {genders.length > 0 ? (
-          genders.map((gender) => (
-            <label key={gender._id} className="block mb-2">
-              <input
-                type="checkbox"
-                value={gender.type}
-                checked={selectedGenders.includes(gender.type)}
-                onChange={() => handleGenderChange(gender.type)}
-                className="mr-2"
-              />
-              {gender.type}
-            </label>
-          ))
-        ) : (
-          <p>Loading genders...</p>
-        )}
-        {/* Clear Filters Button */}
-        {(selectedCategories.length > 0 || selectedGenders.length > 0) && (
-          <button
-            onClick={() => {
-              setSelectedCategories([]);
-              setSelectedGenders([]);
-            }}
-            className="mt-6 px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200"
-          >
-            Clear Filters
-          </button>
-        )}
-      </div>
-      {/* Products List */}
-      <div className="w-full md:w-3/4 p-4">
-        {loading ? (
-          <p>Loading products...</p>
-        ) : filteredProducts.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredProducts.map((info) => (
-              <Link to={`/products/${info._id}`} key={info._id}>
-                <ProductCard Data={info} />
-              </Link>
-            ))}
+    <div className="container mx-auto px-4 py-8 bg-gradient-to-br from-gray-50 to-white min-h-screen">
+      <div className="flex flex-col md:flex-row gap-8">
+        {/* Sidebar Filters */}
+        <aside className="w-full md:w-1/4">
+          {/* Mobile Filter Button */}
+          <div className="md:hidden flex justify-end mb-4">
+            <button
+              className="flex items-center gap-2 px-4 py-2 bg-yellow-500 text-white rounded-lg shadow font-semibold"
+              onClick={() => setShowFilters(true)}
+            >
+              <FaFilter />
+              Filters
+            </button>
           </div>
-        ) : (
-          <p>No products found matching the selected filters.</p>
-        )}
+          {/* Filter Drawer for Mobile */}
+          {showFilters && (
+            <div className="fixed inset-0 z-50 flex">
+              {/* Overlay */}
+              <div
+                className="flex-1 bg-black bg-opacity-40"
+                onClick={() => setShowFilters(false)}
+              />
+              {/* Drawer */}
+              <div className="w-80 max-w-full bg-white rounded-l-xl shadow-lg p-6 border border-gray-200 overflow-y-auto">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold text-gray-800">Filters</h2>
+                  <button
+                    className="text-gray-500 hover:text-red-500 text-xl font-bold"
+                    onClick={() => setShowFilters(false)}
+                    aria-label="Close"
+                  >
+                    &times;
+                  </button>
+                </div>
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-2 text-gray-700">Category</h3>
+                  {categories.length > 0 ? (
+                    categories.map((category) => (
+                      <label key={category._id} className="flex items-center mb-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          value={category.name}
+                          checked={selectedCategories.includes(category.name)}
+                          onChange={() => handleCategoryChange(category.name)}
+                          className="mr-2 accent-yellow-500"
+                        />
+                        <span className="text-gray-700">{category.name}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-400">Loading categories...</p>
+                  )}
+                </div>
+                <div className="mb-6">
+                  <h3 className="text-lg font-semibold mb-2 text-gray-700">Gender</h3>
+                  {genders.length > 0 ? (
+                    genders.map((gender) => (
+                      <label key={gender._id} className="flex items-center mb-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          value={gender.type}
+                          checked={selectedGenders.includes(gender.type)}
+                          onChange={() => handleGenderChange(gender.type)}
+                          className="mr-2 accent-yellow-500"
+                        />
+                        <span className="text-gray-700">{gender.type}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-400">Loading genders...</p>
+                  )}
+                </div>
+                {(selectedCategories.length > 0 || selectedGenders.length > 0) && (
+                  <button
+                    onClick={() => {
+                      setSelectedCategories([]);
+                      setSelectedGenders([]);
+                    }}
+                    className="w-full px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200 font-semibold"
+                  >
+                    Clear Filters
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Desktop Sidebar */}
+          <div className="hidden md:block bg-white rounded-xl shadow-lg p-6 border border-gray-200 mb-6 md:mb-0">
+            <h2 className="text-2xl font-bold mb-4 text-gray-800">Filters</h2>
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-2 text-gray-700">Category</h3>
+              {categories.length > 0 ? (
+                categories.map((category) => (
+                  <label key={category._id} className="flex items-center mb-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      value={category.name}
+                      checked={selectedCategories.includes(category.name)}
+                      onChange={() => handleCategoryChange(category.name)}
+                      className="mr-2 accent-yellow-500"
+                    />
+                    <span className="text-gray-700">{category.name}</span>
+                  </label>
+                ))
+              ) : (
+                <p className="text-sm text-gray-400">Loading categories...</p>
+              )}
+            </div>
+            <div className="mb-6">
+              <h3 className="text-lg font-semibold mb-2 text-gray-700">Gender</h3>
+              {genders.length > 0 ? (
+                genders.map((gender) => (
+                  <label key={gender._id} className="flex items-center mb-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      value={gender.type}
+                      checked={selectedGenders.includes(gender.type)}
+                      onChange={() => handleGenderChange(gender.type)}
+                      className="mr-2 accent-yellow-500"
+                    />
+                    <span className="text-gray-700">{gender.type}</span>
+                  </label>
+                ))
+              ) : (
+                <p className="text-sm text-gray-400">Loading genders...</p>
+              )}
+            </div>
+            {(selectedCategories.length > 0 || selectedGenders.length > 0) && (
+              <button
+                onClick={() => {
+                  setSelectedCategories([]);
+                  setSelectedGenders([]);
+                }}
+                className="w-full px-4 py-2 bg-red-500 text-white rounded-md hover:bg-red-600 transition-colors duration-200 font-semibold"
+              >
+                Clear Filters
+              </button>
+            )}
+          </div>
+        </aside>
+
+        {/* Products List */}
+        <main className="w-full md:w-3/4">
+          <h1 className="text-3xl font-extrabold text-gray-900 mb-6">Shop Products</h1>
+          {loading ? (
+            <div className="flex items-center justify-center h-64">
+              <span className="text-lg text-gray-500 animate-pulse">Loading products...</span>
+            </div>
+          ) : filteredProducts.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+              {filteredProducts.map((info) => (
+                <Link to={`/products/${info._id}`} key={info._id}>
+                  <ProductCard Data={info} />
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="flex items-center justify-center h-64">
+              <span className="text-lg text-gray-500">No products found matching the selected filters.</span>
+            </div>
+          )}
+        </main>
       </div>
     </div>
   );

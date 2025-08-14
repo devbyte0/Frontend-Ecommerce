@@ -1,7 +1,21 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
+import { useAdmin } from '../context/AdminContext'; // Adjust path as needed
 
 const Sidebar = ({ isOpen, toggleSidebar }) => {
+  const { logout, isAuthenticated } = useAdmin();
+
+  const handleSignOut = async (e) => {
+    e.preventDefault();
+    try {
+      await logout();
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  };
+
+  if (!isAuthenticated) return null;
+
   return (
     <aside
       id="logo-sidebar"
@@ -15,16 +29,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           {/* Dashboard */}
           <li>
             <NavLink
-              style={({ isActive, isPending, isTransitioning }) => {
-                return {
-                  fontWeight: isActive ? "bold" : "",
-                  backgroundColor: isActive ? "blue":"",
-                  color: isPending ? "red" : "",
-                  viewTransitionName: isTransitioning ? "slide" : "",
-                };
-              }}
-              to="../dashboard"
-              className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
+              to="/admin/dashboard"
+              className={({ isActive }) => 
+                `flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group ${
+                  isActive ? 'bg-blue-100 dark:bg-gray-600' : ''
+                }`
+              }
             >
               <svg
                 className="w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
@@ -39,20 +49,16 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
               <span className="ms-3">Dashboard</span>
             </NavLink>
           </li>
-          
+
           {/* Inbox */}
           <li>
             <NavLink
-              style={({ isActive, isPending, isTransitioning }) => {
-                return {
-                  fontWeight: isActive ? "bold" : "",
-                  backgroundColor: isActive ? "blue":"",
-                  color: isPending ? "red" : "",
-                  viewTransitionName: isTransitioning ? "slide" : "",
-                };
-              }}
-              to="../inbox"
-              className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
+              to="/admin/dashboard/inbox"
+              className={({ isActive }) => 
+                `flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group ${
+                  isActive ? 'bg-blue-100 dark:bg-gray-600' : ''
+                }`
+              }
             >
               <svg
                 className="flex-shrink-0 w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
@@ -70,19 +76,15 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             </NavLink>
           </li>
 
-          {/* Users */}
+          {/* Admins */}
           <li>
             <NavLink
-              style={({ isActive, isPending, isTransitioning }) => {
-                return {
-                  fontWeight: isActive ? "bold" : "",
-                  backgroundColor: isActive ? "blue":"",
-                  color: isPending ? "red" : "",
-                  viewTransitionName: isTransitioning ? "slide" : "",
-                };
-              }}
-              to="../admins"
-              className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
+              to="/admin/dashboard/admins"
+              className={({ isActive }) => 
+                `flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group ${
+                  isActive ? 'bg-blue-100 dark:bg-gray-600' : ''
+                }`
+              }
             >
               <svg
                 className="flex-shrink-0 w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
@@ -97,18 +99,15 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             </NavLink>
           </li>
 
+          {/* Users */}
           <li>
             <NavLink
-              style={({ isActive, isPending, isTransitioning }) => {
-                return {
-                  fontWeight: isActive ? "bold" : "",
-                  backgroundColor: isActive ? "blue":"",
-                  color: isPending ? "red" : "",
-                  viewTransitionName: isTransitioning ? "slide" : "",
-                };
-              }}
-              to="../users"
-              className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
+              to="/admin/dashboard/users"
+              className={({ isActive }) => 
+                `flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group ${
+                  isActive ? 'bg-blue-100 dark:bg-gray-600' : ''
+                }`
+              }
             >
               <svg
                 className="flex-shrink-0 w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
@@ -126,16 +125,12 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           {/* Products */}
           <li>
             <NavLink
-              style={({ isActive, isPending, isTransitioning }) => {
-                return {
-                  fontWeight: isActive ? "bold" : "",
-                  backgroundColor: isActive ? "blue":"",
-                  color: isPending ? "red" : "",
-                  viewTransitionName: isTransitioning ? "slide" : "",
-                };
-              }}
-              to="../products"
-              className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
+              to="/admin/dashboard/products"
+              className={({ isActive }) => 
+                `flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group ${
+                  isActive ? 'bg-blue-100 dark:bg-gray-600' : ''
+                }`
+              }
             >
               <svg
                 className="flex-shrink-0 w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
@@ -150,11 +145,40 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
             </NavLink>
           </li>
 
-          {/* Sign In */}
+          {/* Orders */}
           <li>
-            <a
-              href="#"
-              className="flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
+            <NavLink
+              to="/admin/dashboard/orders"
+              className={({ isActive }) => 
+                `flex items-center p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group ${
+                  isActive ? 'bg-blue-100 dark:bg-gray-600' : ''
+                }`
+              }
+            >
+              <svg
+                className="flex-shrink-0 w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
+                aria-hidden="true"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                viewBox="0 0 24 24"
+              >
+                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+                <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+                <line x1="12" y1="22.08" x2="12" y2="12"></line>
+              </svg>
+              <span className="flex-1 ms-3 whitespace-nowrap">Orders</span>
+            </NavLink>
+          </li>
+
+          {/* Sign Out */}
+          <li>
+            <button
+              onClick={handleSignOut}
+              className="flex items-center w-full p-2 text-gray-900 rounded-lg dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 group"
             >
               <svg
                 className="flex-shrink-0 w-5 h-5 text-gray-500 transition duration-75 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-white"
@@ -171,10 +195,9 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
                   d="M1 8h11m0 0L8 4m4 4-4 4m4-11h3a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2h-3"
                 />
               </svg>
-              <span className="flex-1 ms-3 whitespace-nowrap">SignOut</span>
-            </a>
+              <span className="flex-1 ms-3 whitespace-nowrap text-left">Sign Out</span>
+            </button>
           </li>
-
         </ul>
       </div>
     </aside>

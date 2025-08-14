@@ -1,32 +1,61 @@
 import React from "react";
-import { FaBox, FaInbox, FaTrash } from "react-icons/fa";
+import { FaBox, FaInbox, FaTrash, FaUser } from "react-icons/fa";
 import PropTypes from "prop-types";
+import { Link } from "react-router-dom";
 
 const UserSidebar = ({ onDeleteAccount, isOpen }) => (
-  <div
-    className={`fixed top-18 left-0 w-48 bg-gray-100 p-4 h-full shadow-lg  transition-transform transform ${
-      isOpen ? "translate-x-0" : "-translate-x-full"
-    } md:relative md:translate-x-0 md:min-h-screen`} // Absolute on mobile, relative on desktop
-  >
-    <h3 className="text-lg font-semibold mt-10 text-gray-800 mb-6">Account</h3>
-    <ul className="space-y-4">
-      <li className="flex items-center space-x-2 text-gray-700 cursor-pointer hover:text-blue-500">
-        <FaBox className="text-lg" />
-        <span>Orders</span>
-      </li>
-      <li className="flex items-center space-x-2 text-gray-700 cursor-pointer hover:text-blue-500">
-        <FaInbox className="text-lg" />
-        <span>Inbox</span>
-      </li>
-      <li
-        onClick={onDeleteAccount}
-        className="flex items-center space-x-2 text-red-600 cursor-pointer hover:text-red-700"
+  <>
+    {/* Sidebar visible only md and lg, hidden below md and above lg */}
+    
+
+    {/* Mobile Bottom Tab Bar */}
+    <nav
+      className={`fixed max-md:bottom-[120.5px] md:bottom-[65px] left-0 right-0 bg-white border-t border-gray-200 shadow-md
+        flex justify-around items-center h-16  z-40
+        transform transition-transform duration-300 ease-in-out
+        ${isOpen ? "translate-y-0" : "translate-y-full"}`}
+    >
+      {/* Profile */}
+      <Link
+        to="/profile"
+        className="flex flex-col items-center justify-center text-gray-700 hover:text-blue-600 transition"
       >
-        <FaTrash className="text-lg" />
-        <span>Delete Account</span>
-      </li>
-    </ul>
-  </div>
+        <FaUser className="text-xl" />
+        <span className="text-xs">Profile</span>
+      </Link>
+
+      {/* Orders */}
+      <Link
+        to="/profile/orders"
+        className="flex flex-col items-center justify-center text-gray-700 hover:text-blue-600 transition"
+      >
+        <FaBox className="text-xl" />
+        <span className="text-xs">Orders</span>
+      </Link>
+
+      {/* Inbox (non-link) */}
+      <div
+        className="flex flex-col items-center justify-center text-gray-700 hover:text-blue-600 cursor-pointer transition"
+        role="button"
+        tabIndex={0}
+        onClick={() => alert("Inbox clicked")}
+        onKeyPress={(e) => e.key === "Enter" && alert("Inbox clicked")}
+      >
+        <FaInbox className="text-xl" />
+        <span className="text-xs">Inbox</span>
+      </div>
+
+      {/* Delete Account */}
+      <button
+        onClick={onDeleteAccount}
+        className="flex flex-col items-center justify-center text-red-600 hover:text-red-700 transition"
+        aria-label="Delete Account"
+      >
+        <FaTrash className="text-xl" />
+        <span className="text-xs">Delete</span>
+      </button>
+    </nav>
+  </>
 );
 
 UserSidebar.propTypes = {

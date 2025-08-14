@@ -1,69 +1,137 @@
-
-import axios from 'axios';
-import { useEffect, useState } from 'react';
-import { NavLink } from 'react-router-dom'
-
+import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAdmin } from '../context/AdminContext';
 
 function AdminLoginForm() {
-  const [Tokens,setTokens] = useState({})
-
-  const [data, setData] = useState({  email: '',password:'' });
+  const [formData, setFormData] = useState({
+    emailOrUserName: '',
+    password: ''
+  });
+  const [formError, setFormError] = useState('');
+  const { login, loading, error } = useAdmin();
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
-    setData({ ...data, [e.target.email]: e.target.value,[e.target.password]: e.target.value });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setFormError('');
+    
+    if (!formData.emailOrUserName || !formData.password) {
+      setFormError('Please fill in all fields');
+      return;
+    }
+
     try {
-      const response = await axios.post('localhost:3000/api/auth/admin/dashboard', data);
-      Console.log(response)
+      await login({
+        emailOrUserName: formData.emailOrUserName,
+        password: formData.password
+      });
+      navigate('/admin/dashboard');
     } catch (error) {
-      setResponseMessage(`Error: ${error.response ? error.response.data.message : error.message}`);
+      console.error('Login error:', error);
+      setFormError(error.message || 'Login failed');
     }
   };
 
   return (
-    <section class="bg-gray-50 dark:bg-gray-900">
-  <div class="flex flex-col items-center justify-center px-6 py-8 mx-auto md:h-screen lg:py-0">
-      <a href="#" class="flex items-center mb-6 text-2xl font-semibold text-gray-900 dark:text-white">
-          
-          Admin Panel
-      </a>
-      <div class="w-full bg-white rounded-lg shadow dark:border md:mt-0 sm:max-w-md xl:p-0 dark:bg-gray-800 dark:border-gray-700">
-          <div class="p-6 space-y-4 md:space-y-6 sm:p-8">
-              <h1 class="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white text-center">
-                  Log in to your account
-              </h1>
-              <form class="space-y-4 md:space-y-6" action="#">
-                  <div>
-                      <label for="email" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Your email</label>
-                      <input type="email" name="email"  value={data.email}
-        onChange={handleChange} id="email" class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" placeholder="name@company.com" required=""/>
-                  </div>
-                  <div>
-                      <label for="password" class="block mb-2 text-sm font-medium text-gray-900 dark:text-white">Password</label>
-                      <input type="password" value={data.password}
-        onChange={handleChange} name="password" id="password" placeholder="••••••••" class="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500" required=""/>
-                  </div>
-                  <div class="flex items-center justify-between">
-                      <div class="flex items-start">
-                          <div class="flex items-center h-5">
-                            <input id="remember" aria-describedby="remember" type="checkbox" class="w-4 h-4 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-primary-600 dark:ring-offset-gray-800" required=""/>
-                          </div>
-                          <div class="ml-3 text-sm">
-                            <label for="remember" class="text-gray-500 dark:text-gray-300">Remember me</label>
-                          </div>
-                      </div>
-                      <a href="#" class="text-sm font-medium text-primary-600 hover:underline dark:text-primary-500">Forgot password?</a>
-                  </div>
-                  <button type="submit" onSubmit={handleSubmit} class="w-full text-white bg-primary-600 hover:bg-primary-700 focus:ring-4 focus:outline-none focus:ring-primary-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center dark:bg-primary-600 dark:hover:bg-primary-700 dark:focus:ring-primary-800">LogIn</button>
-              </form>
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="w-full max-w-md p-8 space-y-8 bg-white rounded-lg shadow">
+        <div className="text-center">
+          <h2 className="text-3xl font-extrabold text-gray-900">Admin Sign In</h2>
+          <p className="mt-2 text-sm text-gray-600">
+            Enter your credentials to access the dashboard
+          </p>
+        </div>
+
+        {(error || formError) && (
+          <div className="p-4 text-sm text-red-700 bg-red-100 rounded-lg">
+            {error || formError}
           </div>
+        )}
+
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div className="space-y-4">
+            <div>
+              <label htmlFor="emailOrUserName" className="block text-sm font-medium text-gray-700">
+                Email or Username
+              </label>
+              <input
+                id="emailOrUserName"
+                name="emailOrUserName"
+                type="text"
+                autoComplete="username"
+                required
+                value={formData.emailOrUserName}
+                onChange={handleChange}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+                value={formData.password}
+                onChange={handleChange}
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center">
+              <input
+                id="remember-me"
+                name="remember-me"
+                type="checkbox"
+                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              />
+              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
+                Remember me
+              </label>
+            </div>
+
+            <a href="#" className="text-sm text-blue-600 hover:text-blue-500">
+              Forgot password?
+            </a>
+          </div>
+
+          <div>
+            <button
+              type="submit"
+              disabled={loading}
+              className={`w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 ${
+                loading ? 'opacity-70 cursor-not-allowed' : ''
+              }`}
+            >
+              {loading ? (
+                <>
+                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Signing in...
+                </>
+              ) : 'Sign in'}
+            </button>
+          </div>
+        </form>
       </div>
-  </div>
-</section>
-  )
+    </div>
+  );
 }
 
-export default AdminLoginForm
+export default AdminLoginForm;

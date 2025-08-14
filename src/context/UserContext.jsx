@@ -1,164 +1,276 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { jwtDecode } from 'jwt-decode';
 
-// Create the context
 export const UserContext = createContext();
 
-// UserProvider component
 export const UserProvider = ({ children }) => {
-    const navigate = useNavigate();
+  const navigate = useNavigate();
+  const API = import.meta.env.VITE_API_URI;
 
-    
+  const [user, setUser] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [address, setAddress] = useState(null);
+  const [paymentMethods, setPaymentMethods] = useState([]);
+  const [defaultPaymentMethod, setDefaultPaymentMethod] = useState(null);
+  const [redirectPath, setRedirectPath] = useState(null);
+  const [errorMessage, setErrorMessage] = useState('');
 
-    const [user, setUser] = useState(null);
-    const [isLoggedIn, setIsLoggedIn] = useState(false);
-    const [savedAddress, setSavedAddress] = useState(null);
-    const [savedPaymentMethod, setSavedPaymentMethod] = useState(null);
-    const [redirectPath, setRedirectPath] = useState(null);
-    const [errorMessage, setErrorMessage] = useState('');
+  const pickDefaultPaymentMethod = (methods = []) =>
+    methods.find((m) => m.isDefault) || methods[0] || null;
 
-    useEffect(() => {
-        const storedUser = localStorage.getItem('user') ? JSON.parse(localStorage.getItem('user')) : null;
-        const accessToken = localStorage.getItem('accessToken');
-        if (storedUser && accessToken) {
-            setUser(storedUser);
-            setIsLoggedIn(true);
-            setSavedAddress(storedUser.savedAddress);
-            setSavedPaymentMethod(storedUser.savedPaymentMethod);
-        }
-    }, []);
+  const isTokenExpired = (token) => {
+    try {
+      const { exp } = jwtDecode(token);
+      return Date.now() >= exp * 1000;
+    } catch {
+      return true;
+    }
+  };
 
-    useEffect(() => {
-        if (redirectPath) {
-            navigate(redirectPath);
-            setRedirectPath(null);
-        }
-    }, [redirectPath, navigate]);
+  const refreshAccessToken = async () => {
+    try {
+      const refreshToken = localStorage.getItem('refreshToken');
+      if (!refreshToken) throw new Error('No refresh token available');
 
-    const login = async (email, password) => {
+      const response = await axios.post(`${API}/api/refresh-token`, { token: refreshToken });
+      const newAccessToken = response.data.accessToken;
+
+      localStorage.setItem('accessToken', newAccessToken);
+      axios.defaults.headers.common.Authorization = `Bearer ${newAccessToken}`; // 🔐 Set default
+
+      return newAccessToken;
+    } catch (error) {
+      console.error('Error refreshing token:', error);
+      logout();
+      throw error;
+    }
+  };
+
+  const getAccessToken = async () => {
+    let token = localStorage.getItem('accessToken');
+    if (!token || isTokenExpired(token)) {
+      token = await refreshAccessToken();
+    }
+    return token;
+  };
+
+  const getAuthHeader = async () => {
+    const token = await getAccessToken();
+    return { Authorization: `Bearer ${token}` };
+  };
+
+  const authRequest = async (url, options = {}) => {
+    let accessToken = localStorage.getItem('accessToken');
+    if (!accessToken || isTokenExpired(accessToken)) {
+      accessToken = await refreshAccessToken();
+    }
+
+    try {
+      const res = await axios({
+        ...options,
+        url,
+        headers: {
+          ...options.headers,
+          Authorization: `Bearer ${accessToken}`,
+        },
+      });
+      return res.data;
+    } catch (error) {
+      if (error.response?.status === 401) {
         try {
-            const response = await axios.post(`${import.meta.env.VITE_API_URI}/api/login`, { email, password });
-            const { user, accessToken, refreshToken } = response.data;
-
-            setUser(user);
-            setIsLoggedIn(true);
-            setSavedAddress(user.savedAddress || null);
-            setSavedPaymentMethod(user.savedPaymentMethod || null);
-            
-
-            localStorage.setItem('user', JSON.stringify(user));
-            localStorage.setItem('accessToken', accessToken);
-            localStorage.setItem('refreshToken', refreshToken);
-            setRedirectPath('/');
-            
-        } catch (error) {
-            console.error("Login error:", error);
-            setErrorMessage(error.response?.data?.message || 'Login failed');
-            throw error;
+          accessToken = await refreshAccessToken();
+          const retry = await axios({
+            ...options,
+            url,
+            headers: {
+              ...options.headers,
+              Authorization: `Bearer ${accessToken}`,
+            },
+          });
+          return retry.data;
+        } catch (refreshError) {
+          logout();
+          throw refreshError;
         }
-    };
+      }
+      throw error;
+    }
+  };
 
-    const register = async (registerData) => {
-        try {
-            await axios.post(`${import.meta.env.VITE_API_URI}/api/register`, registerData);
-            setRedirectPath('/login');
-        } catch (error) {
-            console.error("Registration error:", error);
-            setErrorMessage(error.response?.data?.message || 'Registration failed');
-            throw error;
-        }
-    };
+  const fetchUser = async () => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      if (!accessToken) return logout();
 
-    const logout = () => {
-        setUser(null);
-        setIsLoggedIn(false);
-        setSavedAddress(null);
-        setSavedPaymentMethod(null);
-        
-        localStorage.removeItem('user');
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        setRedirectPath('/login');
-    };
+      axios.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
 
-    const refreshAccessToken = async () => {
-        try {
-            const refreshToken = localStorage.getItem('refreshToken');
-            if (!refreshToken) throw new Error("No refresh token available");
+      const freshUser = await authRequest(`${API}/api/user/profile`, { method: 'GET' });
+      setUser(freshUser);
+      setIsLoggedIn(true);
 
-            const response = await axios.post(`${import.meta.env.VITE_API_URI}/api/auth/refresh`, { token: refreshToken });
-            const newAccessToken = response.data.accessToken;
+      const addr = freshUser.address || null;
+      const methods = freshUser.paymentMethods || [];
 
-            localStorage.setItem("accessToken", newAccessToken);
-            return newAccessToken;
-        } catch (error) {
-            console.error("Error refreshing token:", error);
-            logout();
-        }
-    };
+      setAddress(addr);
+      setPaymentMethods(methods);
+      setDefaultPaymentMethod(pickDefaultPaymentMethod(methods));
+      localStorage.setItem('user', JSON.stringify(freshUser));
+    } catch (error) {
+      console.error('Failed to fetch user data:', error);
+      logout();
+    }
+  };
 
-    const authRequest = async (url, options = {}) => {
-        let accessToken = localStorage.getItem("accessToken");
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken');
+    if (token) axios.defaults.headers.common.Authorization = `Bearer ${token}`;
+    fetchUser();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-        try {
-            const response = await axios({
-                ...options,
-                url,
-                headers: {
-                    ...options.headers,
-                    Authorization: `Bearer ${accessToken}`,
-                },
-            });
-            return response.data;
-        } catch (error) {
-            if (error.response && error.response.status === 401) {
-                accessToken = await refreshAccessToken();
-                if (accessToken) {
-                    return axios({
-                        ...options,
-                        url,
-                        headers: {
-                            ...options.headers,
-                            Authorization: `Bearer ${accessToken}`,
-                        },
-                    }).then(res => res.data);
-                }
-            }
-            throw error;
-        }
-    };
+  useEffect(() => {
+    if (redirectPath) {
+      navigate(redirectPath);
+      setRedirectPath(null);
+    }
+  }, [redirectPath, navigate]);
 
-    return (
-        <UserContext.Provider
-            value={{
-                user,
-                isLoggedIn,
-                savedAddress,
-                savedPaymentMethod,
-                errorMessage,
-                login,
-                logout,
-                register,
-                updateProfile: (newData) => {
-                    const updatedUser = { ...user, ...newData };
-                    setUser(updatedUser);
-                    setSavedAddress(updatedUser.savedAddress);
-                    setSavedPaymentMethod(updatedUser.savedPaymentMethod);
-                    localStorage.setItem("user", JSON.stringify(updatedUser));
-                },
-                clearSavedInfo: () => {
-                    setSavedAddress(null);
-                    setSavedPaymentMethod(null);
-                    const updatedUser = { ...user, savedAddress: null, savedPaymentMethod: null };
-                    setUser(updatedUser);
-                    localStorage.setItem("user", JSON.stringify(updatedUser));
-                },
-                authRequest,
-            }}
-        >
-            {children}
-        </UserContext.Provider>
-    );
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const token = localStorage.getItem('accessToken');
+      if (token && isTokenExpired(token)) {
+        logout();
+      }
+    }, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const login = async (emailOrPhone, password) => {
+    try {
+      const response = await axios.post(`${API}/api/login`, { emailOrPhone, password });
+      const { user: loggedInUser, accessToken, refreshToken } = response.data;
+
+      setUser(loggedInUser);
+      setIsLoggedIn(true);
+
+      const addr = loggedInUser.address || null;
+      const methods = loggedInUser.paymentMethods || [];
+
+      setAddress(addr);
+      setPaymentMethods(methods);
+      setDefaultPaymentMethod(pickDefaultPaymentMethod(methods));
+
+      localStorage.setItem('user', JSON.stringify(loggedInUser));
+      localStorage.setItem('accessToken', accessToken);
+      localStorage.setItem('refreshToken', refreshToken);
+
+      axios.defaults.headers.common.Authorization = `Bearer ${accessToken}`;
+      setRedirectPath('/');
+    } catch (error) {
+      console.error('Login error:', error);
+      setErrorMessage(error.response?.data?.message || 'Login failed');
+      throw error;
+    }
+  };
+
+  const register = async (registerData) => {
+    try {
+      await axios.post(`${API}/api/register`, registerData);
+      setRedirectPath('/login');
+    } catch (error) {
+      console.error('Registration error:', error);
+      setErrorMessage(error.response?.data?.message || 'Registration failed');
+      throw error;
+    }
+  };
+
+  const logout = async () => {
+    try {
+      const accessToken = localStorage.getItem('accessToken');
+      if (accessToken) {
+        await axios.post(`${API}/api/logout`, {}, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+      }
+    } catch (error) {
+      console.warn('Logout API failed:', error);
+    }
+
+    setUser(null);
+    setIsLoggedIn(false);
+    setAddress(null);
+    setPaymentMethods([]);
+    setDefaultPaymentMethod(null);
+
+    localStorage.removeItem('user');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
+
+    delete axios.defaults.headers.common.Authorization;
+    setRedirectPath('/login');
+  };
+
+  const updateProfile = async (newData) => {
+    await authRequest(`${API}/api/profile`, { method: 'PATCH', data: newData });
+    await fetchUser();
+  };
+
+  const updateAddress = async (newAddress) => {
+    await authRequest(`${API}/api/address`, { method: 'PATCH', data: { address: newAddress } });
+    await fetchUser();
+  };
+
+  const replacePaymentMethods = async (methods) => {
+    await authRequest(`${API}/api/payment-methods`, { method: 'PATCH', data: { paymentMethods: methods } });
+    await fetchUser();
+  };
+
+  const addPaymentMethod = async (method) => {
+    await authRequest(`${API}/api/payment-methods`, { method: 'POST', data: method });
+    await fetchUser();
+  };
+
+  const removePaymentMethod = async (methodId) => {
+    await authRequest(`${API}/api/payment-methods/${methodId}`, { method: 'DELETE' });
+    await fetchUser();
+  };
+
+  const makeDefaultPaymentMethod = async (methodId) => {
+    await authRequest(`${API}/api/payment-methods/${methodId}/default`, { method: 'PATCH' });
+    await fetchUser();
+  };
+
+  const editPaymentMethod = async (methodId, updates) => {
+    await authRequest(`${API}/api/payment-methods/${methodId}`, { method: 'PATCH', data: updates });
+    await fetchUser();
+  };
+
+  return (
+    <UserContext.Provider
+      value={{
+        user,
+        isLoggedIn,
+        address,
+        paymentMethods,
+        defaultPaymentMethod,
+        errorMessage,
+        login,
+        logout,
+        register,
+        authRequest,
+        updateProfile,
+        updateAddress,
+        replacePaymentMethods,
+        addPaymentMethod,
+        removePaymentMethod,
+        makeDefaultPaymentMethod,
+        editPaymentMethod,
+        getAuthHeader, // 👈 exposed for custom requests
+      }}
+    >
+      {children}
+    </UserContext.Provider>
+  );
 };
-

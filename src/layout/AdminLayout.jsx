@@ -1,9 +1,12 @@
-import { Outlet } from "react-router-dom"
+import { Outlet } from "react-router-dom";
+import { AdminProvider } from "../context/AdminContext";
 
 function AdminLayout() {
   return (
-    <Outlet/>
-  )
+    <AdminProvider>
+      <Outlet/>
+    </AdminProvider>
+  );
 }
 
-export default AdminLayout
+export default AdminLayout;

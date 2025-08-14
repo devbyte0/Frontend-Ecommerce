@@ -1,19 +1,19 @@
-// frontend/src/components/ProductCreate.jsx
-
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import { FaPlus } from 'react-icons/fa';
+import Select from 'react-select';
+import { FaPlus, FaTrash, FaEdit, FaTimes } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
 const ProductCreate = () => {
-  // State variables for dropdown options
+  // Dropdown options state
   const [categories, setCategories] = useState([]);
   const [colors, setColors] = useState([]);
   const [sizes, setSizes] = useState([]);
   const [genders, setGenders] = useState([]);
   const [badges, setBadges] = useState([]);
-  
-  // State for product information
+  const [measureTypes, setMeasureTypes] = useState([]);
+
+  // Product info state
   const [product, setProduct] = useState({
     name: '',
     categories: [],
@@ -22,153 +22,256 @@ const ProductCreate = () => {
     mainBadgeName: '',
     mainBadgeColor: '',
     gender: '',
+    measureType: '',
+    unitName: '',
     variants: [],
     mainImage: null,
   });
 
-  // State for current variant being added
+  // Variant form state
   const [variant, setVariant] = useState({
     selectedColor: '',
-    selectedColorHex: '', // Stores the hex code of the selected color
+    selectedColorHex: '',
     sizes: [],
     prices: [],
     discountPrices: [],
     deliveryTimes: '',
     badgeNames: [],
-    badgeColors: [], // Stores colors corresponding to selected badges
+    badgeColors: [],
     stock: '',
     description: '',
-    images: [],
+    images: [], // Now will be [{file, preview}]
   });
 
-  // Additional state variables
+  const [editingVariantIndex, setEditingVariantIndex] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
-  const [isVariantVisible, setIsVariantVisible] = useState(false); // Controls visibility of variant form
-  const [variantCount, setVariantCount] = useState(0); // Tracks number of variants added
+  const [isVariantVisible, setIsVariantVisible] = useState(false);
+  const [variantCount, setVariantCount] = useState(0);
 
   const navigate = useNavigate();
 
-  // Fetch dropdown options on component mount
+  // Fetch dropdown options on mount
   useEffect(() => {
+    const fetchOptions = async () => {
+      try {
+        const [categoriesRes, colorsRes, sizesRes, gendersRes, badgesRes, unitsRes] = await Promise.all([
+          axios.get(`${import.meta.env.VITE_API_URI}/api/categories`),
+          axios.get(`${import.meta.env.VITE_API_URI}/api/colors`),
+          axios.get(`${import.meta.env.VITE_API_URI}/api/sizes`),
+          axios.get(`${import.meta.env.VITE_API_URI}/api/genders`),
+          axios.get(`${import.meta.env.VITE_API_URI}/api/badges`),
+          axios.get(`${import.meta.env.VITE_API_URI}/api/units`),
+        ]);
+
+        setCategories(categoriesRes.data);
+        setColors(colorsRes.data);
+        setSizes(sizesRes.data);
+        setGenders(gendersRes.data);
+        setBadges(badgesRes.data);
+        setMeasureTypes(unitsRes.data);
+      } catch (error) {
+        console.error('Error fetching options:', error);
+      }
+    };
+
     fetchOptions();
   }, []);
 
-  // Function to fetch dropdown options from the backend
-  const fetchOptions = async () => {
-    try {
-      const [categoriesRes, colorsRes, sizesRes, gendersRes, badgesRes] = await Promise.all([
-        axios.get(`${import.meta.env.VITE_API_URI}/api/categories`),
-        axios.get(`${import.meta.env.VITE_API_URI}/api/colors`),
-        axios.get(`${import.meta.env.VITE_API_URI}/api/sizes` ),
-        axios.get(`${import.meta.env.VITE_API_URI}/api/genders`),
-        axios.get(`${import.meta.env.VITE_API_URI}/api/badges`),
-      ]);
+  // Prepare options for react-select
+  const categoryOptions = categories.map(c => ({ value: c.name, label: c.name }));
+  const colorOptions = colors.map(c => ({ value: c.name, label: `${c.name} (${c.hexCode})` }));
+  const sizeOptions = sizes.map(s => ({ value: s.name, label: s.name }));
+  const genderOptions = genders.map(g => ({ value: g.type, label: g.type }));
+  const badgeOptions = badges.map(b => ({ value: b.name, label: `${b.name} (${b.color})` }));
+  const measureTypeOptions = measureTypes.map(m => ({
+    value: m.measureType,
+    label: `${m.measureType} (${m.unitName})`,
+    unitName: m.unitName,
+  }));
 
-      setCategories(categoriesRes.data);
-      setColors(colorsRes.data);
-      setSizes(sizesRes.data);
-      setGenders(gendersRes.data);
-      setBadges(badgesRes.data);
-    } catch (error) {
-      console.error('Error fetching options:', error);
-    }
-  };
-
-  // Handle changes in the main product form inputs
+  // Product input change handler
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
     if (name === 'mainBadgeName') {
-      // When mainBadgeName changes, also set mainBadgeColor based on selected badge
-      const selectedBadge = badges.find(badge => badge.name === value);
+      const selectedBadge = badges.find((badge) => badge.name === value);
       const mainBadgeColor = selectedBadge ? selectedBadge.color : '';
-      setProduct(prevProduct => ({
-        ...prevProduct,
+      setProduct((prev) => ({
+        ...prev,
         mainBadgeName: value,
-        mainBadgeColor: mainBadgeColor,
-      }));
-    } else if (name === 'categories') {
-      // Handle multiple category selection
-      setProduct(prevProduct => ({
-        ...prevProduct,
-        categories: Array.from(e.target.selectedOptions, (option) => option.value),
+        mainBadgeColor,
       }));
     } else {
-      // Handle other input changes
-      setProduct(prevProduct => ({ ...prevProduct, [name]: value }));
+      setProduct((prev) => ({ ...prev, [name]: value }));
     }
   };
 
-  // Handle changes in the variant form inputs
+  // Variant form input change handler
   const handleVariantChange = (e) => {
     const { name, value } = e.target;
-    
-    if (name === 'selectedColor') {
-      // When selectedColor changes, also set selectedColorHex based on selected color
-      const selectedColorObj = colors.find(color => color.name === value);
-      const selectedColorHex = selectedColorObj ? selectedColorObj.hexCode : '';
-      setVariant(prevVariant => ({
-        ...prevVariant,
-        selectedColor: value,
-        selectedColorHex: selectedColorHex,
-      }));
-    } else if (name === 'badgeNames') {
-      // When badgeNames change, also set badgeColors based on selected badges
-      const selectedBadgeNames = Array.from(e.target.selectedOptions, option => option.value);
-      const selectedBadgeColors = selectedBadgeNames.map(name => {
-        const badge = badges.find(b => b.name === name);
-        return badge ? badge.color : '';
-      });
-      setVariant(prevVariant => ({
-        ...prevVariant,
-        badgeNames: selectedBadgeNames,
-        badgeColors: selectedBadgeColors,
-      }));
-    } else {
-      // Handle other variant input changes
-      setVariant(prevVariant => ({ ...prevVariant, [name]: value }));
-    }
-  };
-  // Handle image uploads for variants
-  const handleVariantImageChange = (e) => {
-    setVariant((prevVariant) => ({ ...prevVariant, images: Array.from(e.target.files) }));
+    setVariant((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Add a new size-price-discountPrice row in the variant form
+  // Variant image upload handler
+  const handleVariantImageChange = (e) => {
+    setVariant((prev) => ({ ...prev, images: Array.from(e.target.files) }));
+  };
+
+  // Add size-price-discountPrice row
   const addSizePrice = () => {
-    setVariant((prevVariant) => ({
-      ...prevVariant,
-      sizes: [...prevVariant.sizes, ''],
-      prices: [...prevVariant.prices, ''],
-      discountPrices: [...prevVariant.discountPrices, ''],
+    setVariant((prev) => ({
+      ...prev,
+      sizes: [...prev.sizes, ''],
+      prices: [...prev.prices, ''],
+      discountPrices: [...prev.discountPrices, ''],
     }));
   };
 
-  // Handle changes in sizes, prices, and discountPrices arrays
+  // Handle size/price/discountPrice change by index
   const handleSizePriceChange = (index, value, type) => {
-    setVariant((prevVariant) => {
-      const updatedArray = [...prevVariant[type]];
+    setVariant((prev) => {
+      const updatedArray = [...prev[type]];
       updatedArray[index] = value;
-      return { ...prevVariant, [type]: updatedArray };
+      return { ...prev, [type]: updatedArray };
     });
   };
 
-  // Function to add a variant to the product
-  const addVariant = () => {
-    if (variant.selectedColor && variant.sizes.length > 0 && variant.stock) {
-      if (variantCount >= 4) {
-        alert('You can only add up to 4 variants.');
+  // React-select handlers
+  const handleCategoriesChange = (selectedOptions) => {
+    setProduct((prev) => ({
+      ...prev,
+      categories: selectedOptions ? selectedOptions.map((opt) => opt.value) : [],
+    }));
+  };
+
+  const handleMainBadgeChange = (selectedOption) => {
+    const badgeColor = selectedOption
+      ? badges.find((b) => b.name === selectedOption.value)?.color || ''
+      : '';
+    setProduct((prev) => ({
+      ...prev,
+      mainBadgeName: selectedOption ? selectedOption.value : '',
+      mainBadgeColor: badgeColor,
+    }));
+  };
+
+  const handleGenderChange = (selectedOption) => {
+    setProduct((prev) => ({
+      ...prev,
+      gender: selectedOption ? selectedOption.value : '',
+    }));
+  };
+
+  const handleMeasureTypeChange = (selectedOption) => {
+    setProduct((prev) => ({
+      ...prev,
+      measureType: selectedOption ? selectedOption.value : '',
+    }));
+  };
+
+  const handleVariantColorChange = (selectedOption) => {
+    const hex = selectedOption ? colors.find(c => c.name === selectedOption.value)?.hexCode || '' : '';
+    setVariant((prev) => ({
+      ...prev,
+      selectedColor: selectedOption ? selectedOption.value : '',
+      selectedColorHex: hex,
+    }));
+  };
+
+  const handleVariantBadgesChange = (selectedOptions) => {
+    const names = selectedOptions ? selectedOptions.map(opt => opt.value) : [];
+    const colorsForBadges = names.map(name => {
+      const badge = badges.find(b => b.name === name);
+      return badge ? badge.color : '';
+    });
+    setVariant((prev) => ({
+      ...prev,
+      badgeNames: names,
+      badgeColors: colorsForBadges,
+    }));
+  };
+
+  // Main image upload
+  const handleMainImageChange = (e) => {
+    setProduct((prev) => ({ ...prev, mainImage: e.target.files[0] }));
+  };
+
+  // Add or update variant
+  const saveVariant = () => {
+    if (!variant.selectedColor || variant.sizes.length === 0 || !variant.stock) {
+      alert('Please fill in all required fields for the variant.');
+      return;
+    }
+
+    if (editingVariantIndex === null) {
+      // Add new variant
+      if (variantCount >= 5) {
+        alert('You can only add up to 5 variants.');
         return;
       }
-
-      setProduct((prevProduct) => ({
-        ...prevProduct,
-        variants: [...prevProduct.variants, { ...variant }],
+      setProduct((prev) => ({
+        ...prev,
+        variants: [...prev.variants, { ...variant }],
       }));
+      setVariantCount((prev) => prev + 1);
+    } else {
+      // Update existing variant
+      setProduct((prev) => {
+        const newVariants = [...prev.variants];
+        newVariants[editingVariantIndex] = { ...variant };
+        return {
+          ...prev,
+          variants: newVariants,
+        };
+      });
+    }
 
-      setVariantCount((prevCount) => prevCount + 1);
+    // Reset variant form
+    setVariant({
+      selectedColor: '',
+      selectedColorHex: '',
+      sizes: [],
+      prices: [],
+      discountPrices: [],
+      deliveryTimes: '',
+      badgeNames: [],
+      badgeColors: [],
+      stock: '',
+      description: '',
+      images: [],
+    });
+    setEditingVariantIndex(null);
+    setIsVariantVisible(false);
+  };
 
-      // Reset variant state
+  // Edit variant - load data into variant form
+  const editVariant = (index) => {
+    const v = product.variants[index];
+    setVariant({
+      ...v,
+      images: v.images.map(imgObj =>
+        imgObj.preview
+          ? imgObj
+          : { ...imgObj, preview: URL.createObjectURL(imgObj.file) }
+      ),
+    });
+    setEditingVariantIndex(index);
+    setIsVariantVisible(true);
+  };
+
+  // Remove variant by index
+  const removeVariant = (index) => {
+    setProduct((prev) => {
+      const newVariants = [...prev.variants];
+      newVariants.splice(index, 1);
+      return { ...prev, variants: newVariants };
+    });
+    setVariantCount((prev) => Math.max(prev - 1, 0));
+
+    if (editingVariantIndex === index) {
+      // Cancel editing if deleting edited variant
+      setEditingVariantIndex(null);
+      setIsVariantVisible(false);
       setVariant({
         selectedColor: '',
         selectedColorHex: '',
@@ -182,70 +285,88 @@ const ProductCreate = () => {
         description: '',
         images: [],
       });
-
-      // Hide the variant section after adding
-      setIsVariantVisible(false);
-    } else {
-      alert('Please fill in all required fields for the variant.');
     }
   };
 
-  // Handle form submission
+  // Cancel variant edit
+  const cancelEdit = () => {
+    setEditingVariantIndex(null);
+    setIsVariantVisible(false);
+    setVariant({
+      selectedColor: '',
+      selectedColorHex: '',
+      sizes: [],
+      prices: [],
+      discountPrices: [],
+      deliveryTimes: '',
+      badgeNames: [],
+      badgeColors: [],
+      stock: '',
+      description: '',
+      images: [],
+    });
+  };
+
+  // Submit product data including variants to backend
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Validate that all variants have images
+    // Check variant images
     for (let i = 0; i < product.variants.length; i++) {
-      if (product.variants[i].images.length === 0) {
+      if (!product.variants[i].images || product.variants[i].images.length === 0) {
         alert(`Please upload images for variant ${i + 1}.`);
         return;
       }
     }
 
-    const formData = new FormData();
-    formData.append('name', product.name);
-    formData.append('categories', JSON.stringify(product.categories));
-    formData.append('mainPrice', product.mainPrice);
-    formData.append('discountPrice', product.discountPrice);
-    formData.append('mainBadgeName', product.mainBadgeName);
-    formData.append('mainBadgeColor', product.mainBadgeColor);
-    formData.append('gender', product.gender);
-    formData.append('mainImage', product.mainImage);
-
-    // Append variants as JSON string excluding images
-
-    
-    const variantsWithoutImages = product.variants.map((variant) => ({
-      colorName: variant.selectedColor,
-      hexCode: variant.selectedColorHex,
-      sizes: variant.sizes,
-      prices: variant.prices,
-      discountPrices: variant.discountPrices,
-      deliveryTimes: variant.deliveryTimes,
-      badgeNames: variant.badgeNames,
-      badgeColors: variant.badgeColors,
-      stock: variant.stock,
-      description: variant.description,
-    }));
-    formData.append('variants', JSON.stringify(variantsWithoutImages));
-
-    // Append images with field names 'images-0' to 'images-3'
-    product.variants.forEach((variant, index) => {
-      variant.images.forEach((image) => {
-        formData.append(`images-${index}`, image);
-      });
-    });
-
     try {
-      const response = await axios.post(`${import.meta.env.VITE_API_URI}/api/products`, formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-      console.log('Product created:', response.data);
-      setSuccessMessage('Product created successfully!');
+      console.log( 'Submitting product data:', product, variant); // Debugging log
+
+      const formData = new FormData();
+      formData.append('name', product.name);
+      formData.append('categories', JSON.stringify(product.categories));
+      formData.append('mainPrice', product.mainPrice);
+      formData.append('discountPrice', product.discountPrice);
+      formData.append('mainBadgeName', product.mainBadgeName);
+      formData.append('mainBadgeColor', product.mainBadgeColor);
+      formData.append('gender', product.gender);
+      formData.append('measureType', product.measureType);
+      formData.append('unitName', product.unitName);
+      formData.append('mainImage', product.mainImage);
       
-      // Reset the form after successful submission
+
+      // Prepare variants without images for JSON
+      const variantsWithoutImages = product.variants.map((variant) => ({
+        colorName: variant.selectedColor,
+        hexCode: variant.selectedColorHex,
+        sizes: variant.sizes,
+        prices: variant.prices,
+        discountPrices: variant.discountPrices,
+        deliveryTimes: variant.deliveryTimes,
+        badgeNames: variant.badgeNames,
+        badgeColors: variant.badgeColors,
+        stock: variant.stock,
+        description: variant.description,
+        measureType: product.measureType, // <-- include
+        unitName: product.unitName,       // <-- include
+      }));
+
+      formData.append('variants', JSON.stringify(variantsWithoutImages));
+
+      // Append variant images
+      product.variants.forEach((variant, index) => {
+        variant.images.forEach((imgObj) => {
+          formData.append(`images-${index}`, imgObj.file);
+        });
+      });
+
+      const response = await axios.post(`${import.meta.env.VITE_API_URI}/api/products`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+
+      setSuccessMessage('Product created successfully!');
+
+      // Reset product and variant states
       setProduct({
         name: '',
         categories: [],
@@ -254,6 +375,7 @@ const ProductCreate = () => {
         mainBadgeName: '',
         mainBadgeColor: '',
         gender: '',
+        measureType: '',
         variants: [],
         mainImage: null,
       });
@@ -271,7 +393,11 @@ const ProductCreate = () => {
         images: [],
       });
       setVariantCount(0);
-      setIsVariantVisible(false); // Ensure variant form is hidden
+      setIsVariantVisible(false);
+      setEditingVariantIndex(null);
+
+      // Optionally navigate somewhere
+      // navigate('/products');
     } catch (error) {
       console.error('Error creating product:', error);
       alert('Failed to create product. Please try again.');
@@ -279,7 +405,10 @@ const ProductCreate = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col items-center justify-start min-h-screen bg-gray-100 p-4 md:pl-[400px]  sm:p-10 md:p-20">
+    <form
+      onSubmit={handleSubmit}
+      className="flex flex-col items-center justify-start min-h-screen bg-gray-100 p-4 md:pl-[400px] sm:p-10 md:p-20"
+    >
       <h1 className="text-3xl font-bold mb-8 text-gray-800">Create Product</h1>
       {successMessage && (
         <div className="bg-green-100 text-green-700 border border-green-300 p-4 mb-4 rounded">
@@ -287,119 +416,117 @@ const ProductCreate = () => {
         </div>
       )}
       <div className="p-6 border-2 border-gray-300 border-dashed rounded-lg shadow-lg bg-white w-full max-w-5xl">
-        {/* Product Information */}
-        <div className="mb-6">
-          <input
-            type="text"
-            name="name"
-            placeholder="Product Name"
-            value={product.name}
-            onChange={handleInputChange}
-            className="px-4 py-3 border border-gray-300 bg-white rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          <select
-            name="categories"
-            value={product.categories}
-            onChange={(e) =>
-              setProduct({
-                ...product,
-                categories: Array.from(e.target.selectedOptions, (option) => option.value),
-              })
-            }
-            multiple
-            className="border border-gray-300 bg-white rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-            <option value="" disabled>
-              Select Categories
-            </option>
-            {categories.map((category) => (
-              <option key={category._id} value={category.name}>
-                {category.name}
-              </option>
-            ))}
-          </select>
-          <input
-            type="number"
-            name="mainPrice"
-            placeholder="Main Price"
-            value={product.mainPrice}
-            onChange={handleInputChange}
-            className="px-4 py-3 border border-gray-300 bg-white rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-          <input
-            type="number"
-            name="discountPrice"
-            placeholder="Discount Price"
-            value={product.discountPrice}
-            onChange={handleInputChange}
-            className="px-4 py-3 border border-gray-300 bg-white rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <select
-            name="mainBadgeName"
-            value={product.mainBadgeName}
-            onChange={handleInputChange}
-            className="border border-gray-300 bg-white rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="" disabled>
-              Select Main Badge
-            </option>
-            {badges.map((badge) => (
-              <option key={badge._id} value={badge.name}>
-                {badge.name} ({badge.color})
-              </option>
-            ))}
-          </select>
-          <select
-            name="gender"
-            value={product.gender}
-            onChange={handleInputChange}
-            className="border border-gray-300 bg-white rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          >
-            <option value="" disabled>
-              Select Gender
-            </option>
-            {genders.map((gender) => (
-              <option key={gender._id} value={gender.type}>
-                {gender.type}
-              </option>
-            ))}
-          </select>
-          <input
-            type="file"
-            name="mainImage"
-            onChange={(e) => setProduct({ ...product, mainImage: e.target.files[0] })}
-            className="px-4 py-3 border border-gray-300 bg-white rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-          />
-        </div>
+        {/* Product Info Inputs */}
+        <input
+          type="text"
+          name="name"
+          placeholder="Product Name"
+          value={product.name}
+          onChange={handleInputChange}
+          className="px-4 py-3 border border-gray-300 bg-white rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
 
-        {/* Variant Information */}
+        <Select
+          isMulti
+          name="categories"
+          options={categoryOptions}
+          className="mb-4"
+          classNamePrefix="select"
+          value={categoryOptions.filter((opt) => product.categories.includes(opt.value))}
+          onChange={handleCategoriesChange}
+          placeholder="Select Categories"
+        />
+
+        <input
+          type="number"
+          name="mainPrice"
+          placeholder="Main Price"
+          value={product.mainPrice}
+          onChange={handleInputChange}
+          className="px-4 py-3 border border-gray-300 bg-white rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+
+        <input
+          type="number"
+          name="discountPrice"
+          placeholder="Discount Price"
+          value={product.discountPrice}
+          onChange={handleInputChange}
+          className="px-4 py-3 border border-gray-300 bg-white rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        />
+
+        <Select
+          name="mainBadgeName"
+          options={badgeOptions}
+          className="mb-4"
+          classNamePrefix="select"
+          value={badgeOptions.find((opt) => opt.value === product.mainBadgeName) || null}
+          onChange={handleMainBadgeChange}
+          placeholder="Select Main Badge"
+          isClearable
+        />
+
+        <Select
+          name="gender"
+          options={genderOptions}
+          className="mb-4"
+          classNamePrefix="select"
+          value={genderOptions.find((opt) => opt.value === product.gender) || null}
+          onChange={handleGenderChange}
+          placeholder="Select Gender"
+          isClearable
+        />
+
+        <Select
+          name="measureType"
+          options={measureTypeOptions}
+          className="mb-4"
+          classNamePrefix="select"
+          value={measureTypeOptions.find(
+            (opt) =>
+              opt.value === product.measureType &&
+              opt.unitName === product.unitName
+          ) || null}
+          onChange={(selectedOption) => {
+            setProduct((prev) => ({
+              ...prev,
+              measureType: selectedOption ? selectedOption.value : '',
+              unitName: selectedOption ? selectedOption.unitName : '',
+            }));
+          }}
+          placeholder="Select Measure Type (Unit)"
+          isClearable
+        />
+
+        <input
+          type="file"
+          name="mainImage"
+          onChange={handleMainImageChange}
+          className="px-4 py-3 border border-gray-300 bg-white rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          required
+        />
+
+        {/* Variant Section */}
         <div>
           <h2 className="text-2xl font-semibold mb-4 text-gray-800">Variant Information</h2>
+
           {isVariantVisible && (
             <>
-              {/* Variant Color and Stock */}
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                <select
+                <Select
                   name="selectedColor"
-                  value={variant.selectedColor}
-                  onChange={handleVariantChange}
-                  className="border border-gray-300 bg-white rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  options={colorOptions}
+                  className="mb-4"
+                  classNamePrefix="select"
+                  value={colorOptions.find((opt) => opt.value === variant.selectedColor) || null}
+                  onChange={handleVariantColorChange}
+                  placeholder="Select Color"
+                  isClearable
                   required
-                >
-                  <option value="" disabled>
-                    Select Color
-                  </option>
-                  {colors.map((color) => (
-                    <option key={color._id} value={color.name}>
-                      {color.name} ({color.hexCode})
-                    </option>
-                  ))}
-                </select>
+                />
+
                 <input
                   type="number"
                   name="stock"
@@ -411,7 +538,6 @@ const ProductCreate = () => {
                 />
               </div>
 
-              {/* Variant Description and Images */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
                 <textarea
                   name="description"
@@ -422,42 +548,98 @@ const ProductCreate = () => {
                   rows="3"
                   required
                 />
-                <input
-                  type="file"
-                  name="images"
-                  onChange={handleVariantImageChange}
-                  className="px-4 py-3 border border-gray-300 bg-white rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  multiple
-                  required
-                />
+                <div className="mb-4">
+                  <label className="block mb-2 font-semibold">Variant Images</label>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={e => {
+                      const file = e.target.files[0];
+                      if (file) {
+                        const preview = URL.createObjectURL(file);
+                        setVariant(prev => ({
+                          ...prev,
+                          images: [...prev.images, { file, preview }]
+                        }));
+                      }
+                      e.target.value = '';
+                    }}
+                    className="mb-2"
+                  />
+                  <div className="flex flex-wrap gap-4">
+                    {variant.images.map((img, idx) => (
+                      <div key={idx} className="relative">
+                        <img
+                          src={img.preview}
+                          alt={`variant-img-${idx}`}
+                          className="w-20 h-20 object-cover rounded border"
+                        />
+                        {/* Delete Button */}
+                        <button
+                          type="button"
+                          className="absolute top-0 right-0 bg-red-600 text-white rounded-full p-1"
+                          onClick={() => {
+                            setVariant(prev => ({
+                              ...prev,
+                              images: prev.images.filter((_, i) => i !== idx)
+                            }));
+                          }}
+                          title="Delete Image"
+                        >
+                          <FaTrash size={14} />
+                        </button>
+                        {/* Edit Button */}
+                        <label
+                          className="absolute bottom-0 right-0 bg-blue-600 text-white rounded-full p-1 cursor-pointer"
+                          title="Edit Image"
+                        >
+                          <FaEdit size={14} />
+                          <input
+                            type="file"
+                            accept="image/*"
+                            style={{ display: 'none' }}
+                            onChange={e => {
+                              const file = e.target.files[0];
+                              if (file) {
+                                const preview = URL.createObjectURL(file);
+                                setVariant(prev => {
+                                  const newImages = [...prev.images];
+                                  newImages[idx] = { file, preview };
+                                  return { ...prev, images: newImages };
+                                });
+                              }
+                              e.target.value = '';
+                            }}
+                          />
+                        </label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
 
-              {/* Sizes and Prices */}
               <div className="mb-4">
                 <h3 className="text-lg font-semibold mb-2 text-gray-800">Sizes and Prices</h3>
                 {variant.sizes.map((size, index) => (
                   <div key={index} className="flex gap-2 mb-2">
-                    <select
-                      value={size}
-                      onChange={(e) => handleSizePriceChange(index, e.target.value, 'sizes')}
-                      className="border border-gray-300 bg-white rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    <Select
+                      options={sizeOptions}
+                      value={sizeOptions.find((opt) => opt.value === size) || null}
+                      onChange={(selectedOption) =>
+                        handleSizePriceChange(index, selectedOption ? selectedOption.value : '', 'sizes')
+                      }
+                      className="flex-2"
+                      classNamePrefix="select"
+                      placeholder="Select Size"
+                      isClearable
                       required
-                    >
-                      <option value="" disabled>
-                        Select Size
-                      </option>
-                      {sizes.map((sizeOption) => (
-                        <option key={sizeOption._id} value={sizeOption.name}>
-                          {sizeOption.name}
-                        </option>
-                      ))}
-                    </select>
+                    />
                     <input
                       type="number"
                       placeholder="Price"
                       value={variant.prices[index]}
                       onChange={(e) => handleSizePriceChange(index, e.target.value, 'prices')}
-                      className="px-4 py-3 border border-gray-300 bg-white rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-50 px-2 py-1 border bg-white border-gray-300 rounded"
                       required
                     />
                     <input
@@ -465,124 +647,164 @@ const ProductCreate = () => {
                       placeholder="Discount Price"
                       value={variant.discountPrices[index]}
                       onChange={(e) => handleSizePriceChange(index, e.target.value, 'discountPrices')}
-                      className="px-4 py-3 border border-gray-300 bg-white rounded w-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-50 px-2 py-1 border bg-white border-gray-300 rounded"
                     />
+                    <button
+                      type="button"
+                      className="text-red-600 hover:text-red-800"
+                      onClick={() => {
+                        setVariant((prev) => {
+                          const sizes = [...prev.sizes];
+                          const prices = [...prev.prices];
+                          const discountPrices = [...prev.discountPrices];
+                          sizes.splice(index, 1);
+                          prices.splice(index, 1);
+                          discountPrices.splice(index, 1);
+                          return { ...prev, sizes, prices, discountPrices };
+                        });
+                      }}
+                    >
+                      <FaTimes />
+                    </button>
                   </div>
                 ))}
                 <button
                   type="button"
                   onClick={addSizePrice}
-                  className="flex items-center bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 transition"
+                  className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
                 >
-                  <FaPlus className="mr-2" /> Add Size & Price
+                  <FaPlus /> Add Size
                 </button>
               </div>
 
-              {/* Badge Names and Colors */}
-              <select
+              <Select
+                isMulti
                 name="badgeNames"
-                value={variant.badgeNames}
+                options={badgeOptions}
+                className="mb-4"
+                classNamePrefix="select"
+                value={badgeOptions.filter((opt) => variant.badgeNames.includes(opt.value))}
+                onChange={handleVariantBadgesChange}
+                placeholder="Select Badges"
+                isClearable
+              />
+
+              <input
+                type="text"
+                name="deliveryTimes"
+                placeholder="Delivery Times (e.g. 2-4 days)"
+                value={variant.deliveryTimes}
                 onChange={handleVariantChange}
-                className="border border-gray-300 bg-white rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                multiple
-              >
-                <option value="" disabled>
-                  Select Variant Badges
-                </option>
-                {badges.map((badge) => (
-                  <option key={badge._id} value={badge.name}>
-                    {badge.name} ({badge.color})
-                  </option>
-                ))}
-              </select>
+                className="px-4 py-3 border border-gray-300 bg-white rounded w-full mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+
+              <div className="flex gap-4">
+                <button
+                  type="button"
+                  onClick={saveVariant}
+                  className="bg-indigo-600 text-white px-6 py-3 rounded hover:bg-indigo-700 transition"
+                >
+                  {editingVariantIndex === null ? 'Add Variant' : 'Save Variant'}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelEdit}
+                  className="bg-gray-400 text-white px-6 py-3 rounded hover:bg-gray-500 transition"
+                >
+                  Cancel
+                </button>
+              </div>
             </>
           )}
 
-          {/* Add/Cancel Variant Button */}
-          <div className="mb-4">
+          {!isVariantVisible && (
             <button
               type="button"
-              onClick={() => setIsVariantVisible(!isVariantVisible)} // Toggle variant form visibility
-              className={`flex items-center px-4 py-2 rounded transition ${
-                isVariantVisible ? 'bg-red-500 hover:bg-red-600' : 'bg-blue-500 hover:bg-blue-600'
-              } text-white`}
-              disabled={variantCount >= 5 && !isVariantVisible} // Disable if max variants reached
+              onClick={() => setIsVariantVisible(true)}
+              disabled={variantCount >= 5}
+              className={`mt-4 bg-green-600 text-white px-6 py-3 rounded w-full hover:bg-green-700 transition ${
+                variantCount >= 5 ? 'opacity-50 cursor-not-allowed' : ''
+              }`}
             >
-              <FaPlus className="mr-2" />
-              {isVariantVisible ? 'Cancel' : variantCount >= 5 ? 'Max Variants Added' : 'Add Variant'}
+              Add Variant
             </button>
-            {isVariantVisible && variantCount < 4 && (
-              <button
-                type="button"
-                onClick={addVariant}
-                className="flex items-center bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition mt-2"
-              >
-                <FaPlus className="mr-2" /> Save Variant
-              </button>
-            )}
-          </div>
+          )}
         </div>
 
-        {/* Display Added Variants */}
-        <div className="overflow-x-auto">
-          <h2 className="text-2xl font-semibold mb-4 text-gray-800">Product Variants</h2>
-          <table className="min-w-full bg-white border">
-            <thead>
-              <tr>
-                <th className="py-2 px-4 border-b text-gray-600">Color</th>
-                <th className="py-2 px-4 border-b text-gray-600">Sizes</th>
-                <th className="py-2 px-4 border-b text-gray-600">Stock</th>
-                <th className="py-2 px-4 border-b text-gray-600">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {product.variants.length === 0 ? (
-                <tr>
-                  <td colSpan="4" className="text-center py-4">
-                    No variants added.
-                  </td>
-                </tr>
-              ) : (
-                product.variants.map((v, index) => (
-                  <tr key={index} className="text-center">
-                    <td className="py-2 px-4 border-b flex items-center justify-center">
-                      {/* Display color swatch */}
-                      <span
-                        className="w-4 h-4 rounded-full mr-2"
-                        style={{ backgroundColor: v.selectedColorHex }}
-                      ></span>
-                      {v.selectedColor} ({v.selectedColorHex})
-                    </td>
-                    <td className="py-2 px-4 border-b">{v.sizes.join(', ')}</td>
-                    <td className="py-2 px-4 border-b">{v.stock}</td>
-                    <td className="py-2 px-4 border-b flex justify-center space-x-2">
-                      <button
-                        className="bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition"
-                        onClick={() => {
-                          const updatedVariants = product.variants.filter((_, i) => i !== index);
-                          setProduct({ ...product, variants: updatedVariants });
-                          setVariantCount((prevCount) => prevCount - 1);
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        {/* Show added variants */}
+        {product.variants.length > 0 && (
+          <div className="mt-8">
+            <h2 className="text-2xl font-semibold mb-4 text-gray-800">Added Variants</h2>
+            {product.variants.map((v, idx) => (
+              <div
+                key={idx}
+                className="mb-6 p-4 border border-gray-300 rounded shadow-sm bg-gray-50 relative"
+              >
+                {/* Remove variant button */}
+                <button
+                  type="button"
+                  onClick={() => removeVariant(idx)}
+                  className="absolute top-2 right-2 text-red-600 hover:text-red-800"
+                  title="Remove Variant"
+                >
+                  <FaTrash size={18} />
+                </button>
+
+                {/* Edit variant button */}
+                <button
+                  type="button"
+                  onClick={() => editVariant(idx)}
+                  className="absolute top-2 right-10 text-blue-600 hover:text-blue-800"
+                  title="Edit Variant"
+                >
+                  <FaEdit size={18} />
+                </button>
+
+                <p>
+                  <strong>Color:</strong> {v.selectedColor}{' '}
+                  <span style={{ color: v.selectedColorHex }}>■</span>
+                </p>
+                <p>
+                  <strong>Stock:</strong> {v.stock}
+                </p>
+                <p>
+                  <strong>Description:</strong> {v.description}
+                </p>
+                <p>
+                  <strong>Sizes & Prices:</strong>
+                </p>
+                <ul className="list-disc ml-6">
+                  {v.sizes.map((size, i) => (
+                    <li key={i}>
+                      {size} {product.measureType && `(${product.measureType})`} — Price: {v.prices[i]} — Discount Price:{' '}
+                      {v.discountPrices[i]}
+                    </li>
+                  ))}
+                </ul>
+                <p>
+                  <strong>Badges:</strong> {v.badgeNames.join(', ')}
+                </p>
+                <p>
+                  <strong>Delivery Times:</strong> {v.deliveryTimes}
+                </p>
+                <p>
+                  <strong>Images:</strong> {v.images.length} file(s) uploaded
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
 
         {/* Submit Button */}
-        <div className="mt-8">
-          <button
-            type="submit"
-            className="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600 transition w-full"
-          >
-            Create Product
-          </button>
-        </div>
+        <button
+          type="submit"
+          disabled={product.variants.length === 0}
+          className={`mt-8 bg-indigo-600 text-white px-6 py-4 rounded w-full hover:bg-indigo-700 transition ${
+            product.variants.length === 0 ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        >
+          Create Product
+        </button>
       </div>
     </form>
   );

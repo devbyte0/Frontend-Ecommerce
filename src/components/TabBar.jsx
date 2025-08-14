@@ -6,52 +6,53 @@ import { UserContext } from "../context/UserContext";
 
 const MobileTabBar = () => {
   const { cartItems } = useContext(CartContext);
-  const { isLoggedIn } = useContext(UserContext); // Access login status
+  const { isLoggedIn } = useContext(UserContext);
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 bg-white shadow-md border-t md:hidden flex justify-around z-50 py-2">
-      <NavLink to="/home" className="flex flex-col items-center text-gray-600 hover:text-black">
-        <FaHome size={24} />
-        <span className="text-xs">Home</span>
+    <div className="fixed bottom-0 left-0 right-0 bg-gradient-to-r from-yellow-400 to-yellow-500 shadow-lg border-t border-yellow-300 md:hidden flex justify-around z-50 py-1">
+      <NavLink
+        to="/home"
+        className="flex flex-col items-center text-gray-900 hover:text-black px-2 py-1 transition"
+        style={{ minWidth: 60 }}
+      >
+        <FaHome size={22} />
+        <span className="text-xs font-semibold">Home</span>
       </NavLink>
-      <NavLink to="/products" className="flex flex-col items-center text-gray-600 hover:text-black">
-        <FaBoxOpen size={24} />
-        <span className="text-xs">Products</span>
+      <NavLink
+        to="/products"
+        className="flex flex-col items-center text-gray-900 hover:text-black px-2 py-1 transition"
+        style={{ minWidth: 60 }}
+      >
+        <FaBoxOpen size={22} />
+        <span className="text-xs font-semibold">Products</span>
       </NavLink>
-      <NavLink to="/contactus" className="flex flex-col items-center text-gray-600 hover:text-black">
-        <FaPhone size={24} />
-        <span className="text-xs">Contact Us</span>
+      <NavLink
+        to="/contactus"
+        className="flex flex-col items-center text-gray-900 hover:text-black px-2 py-1 transition"
+        style={{ minWidth: 60 }}
+      >
+        <FaPhone size={22} />
+        <span className="text-xs font-semibold">Contact</span>
       </NavLink>
       <NavLink
         to={isLoggedIn ? "/profile" : "/login"}
-        className="flex flex-col items-center text-gray-600 hover:text-black"
+        className="flex flex-col items-center text-gray-900 hover:text-black px-2 py-1 transition"
+        style={{ minWidth: 60 }}
       >
-        <FaUserAlt size={24} />
-        <span className="text-xs">{isLoggedIn ? "My Account" : "Login"}</span>
+        <FaUserAlt size={22} />
+        <span className="text-xs font-semibold">{isLoggedIn ? "Account" : "Login"}</span>
       </NavLink>
-      <NavLink to="/cart" className="flex flex-col items-center text-gray-600 hover:text-black relative">
-        <FaShoppingCart size={24} />
-        <span className="text-xs">Cart</span>
+      <NavLink
+        to="/cart"
+        className="flex flex-col items-center text-gray-900 hover:text-black px-2 py-1 transition relative"
+        style={{ minWidth: 60 }}
+      >
+        <FaShoppingCart size={22} />
+        <span className="text-xs font-semibold">Cart</span>
         {cartItems.length > 0 && (
-          <div
-            style={{
-              position: "absolute",
-              top: "-5px",
-              right: "-10px",
-              backgroundColor: "red",
-              color: "white",
-              borderRadius: "50%",
-              height: "18px",
-              width: "18px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "12px",
-              fontWeight: "bold",
-            }}
-          >
+          <span className="absolute -top-2 -right-2 bg-red-600 text-white rounded-full h-5 w-5 flex items-center justify-center text-xs font-bold shadow">
             {cartItems.length}
-          </div>
+          </span>
         )}
       </NavLink>
     </div>

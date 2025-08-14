@@ -32,6 +32,19 @@ const ProductCRUDPage = () => {
   // Navigate to product creation page
   const handleCreate = () => navigate("./createproducts");
 
+  // Delete product function
+  const handleDelete = async (productId) => {
+    if (!window.confirm('Are you sure you want to delete this product?')) return;
+
+    try {
+      await axios.delete(`${import.meta.env.VITE_API_URI}/api/products/${productId}`);
+      setProducts((prev) => prev.filter((product) => product._id !== productId));
+    } catch (error) {
+      console.error('Error deleting product:', error);
+      alert('Failed to delete product. Please try again.');
+    }
+  };
+
   // Filtered products based on the search query
   const filteredProducts = products.filter((product) => {
     const query = searchQuery.toLowerCase();
@@ -121,7 +134,7 @@ const ProductCRUDPage = () => {
                       </button>
                       <button
                         className="flex items-center bg-red-500 text-white px-2 py-1 rounded hover:bg-red-600 transition"
-                        
+                        onClick={() => handleDelete(product._id)}
                       >
                         <FaTrash className="mr-1" /> Delete
                       </button>
