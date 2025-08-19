@@ -1,3 +1,4 @@
+"use client";
 import Navbar from "../components/Navbar";
 import { Outlet } from "react-router-dom";
 import MobileTabBar from "../components/TabBar";
@@ -7,17 +8,19 @@ import { UserProvider } from "../context/UserContext";
 
 function Layout() {
   return (
-    <div className="flex-col gap-20">
-     
-      <UserProvider>
-        <CartProvider>
-          <Navbar />
-          <Outlet />
-          <MobileTabBar />
-        </CartProvider>
-      </UserProvider>
-      
-    </div>
+    <UserProvider>
+
+      <CartProvider>
+        
+          <div className="flex flex-col gap-20 min-h-screen">
+            <Navbar />
+            <Outlet />
+            <MobileTabBar />
+          </div>
+        
+      </CartProvider>
+
+    </UserProvider>
   );
 }
 

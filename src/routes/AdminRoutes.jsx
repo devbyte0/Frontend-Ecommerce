@@ -1,7 +1,6 @@
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, Navigate } from "react-router-dom";
 import { useAdmin } from "../context/AdminContext";
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
 
 const AdminRoutes = () => {
   const { isAuthenticated, loading, refreshToken } = useAdmin();
@@ -9,14 +8,18 @@ const AdminRoutes = () => {
   const [checkedAuth, setCheckedAuth] = useState(false);
 
   useEffect(() => {
-    // Additional check for cases where initAuth might not have completed
-    if (!isAuthenticated && !loading && localStorage.getItem('adminRefreshToken')) {
-      refreshToken().finally(() => {
-        setCheckedAuth(true);
-      });
-    } else {
+    const verifyAuth = async () => {
+      // Only attempt refresh if not authenticated and token exists
+      if (!isAuthenticated && !loading && localStorage.getItem("adminRefreshToken")) {
+        try {
+          await refreshToken();
+        } catch (err) {
+          console.warn("Admin token refresh failed", err);
+        }
+      }
       setCheckedAuth(true);
-    }
+    };
+    verifyAuth();
   }, [isAuthenticated, loading, refreshToken]);
 
   if (loading || !checkedAuth) {
@@ -28,9 +31,9 @@ const AdminRoutes = () => {
   }
 
   return isAuthenticated ? (
-    <Outlet />
+    <Outlet /> // Render child admin routes
   ) : (
-    <Navigate to="/admin" replace state={{ from: location }} />
+    <Navigate to="/admin" replace state={{ from: location }} /> // Redirect to login
   );
 };
 

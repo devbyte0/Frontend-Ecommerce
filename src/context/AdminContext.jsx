@@ -28,7 +28,7 @@ const safeParse = (value) => {
 
 const fetchCurrentAdmin = async (accessToken) => {
   const res = await axios.get(`${API_BASE_URL}/api/admin/me`, {
-    headers: { Authorization: `Bearer ${accessToken}` }
+    headers: { Authorization: `Bearer ${accessToken}` },
   });
   return res.data?.admin || null;
 };
@@ -79,65 +79,42 @@ export const AdminProvider = ({ children }) => {
     localStorage.removeItem('adminData');
   };
 
-  // --- Initialize Auth on mount ---
-  useEffect(() => {
-    const initAuth = async () => {
-      const refreshToken = localStorage.getItem('adminRefreshToken');
-      const accessToken = localStorage.getItem('adminAccessToken');
-      const adminFromStorage = safeParse(localStorage.getItem('adminData'));
+ useEffect(() => {
+  const initAuth = async () => {
+    const refreshToken = localStorage.getItem('adminRefreshToken');
+    const accessToken = localStorage.getItem('adminAccessToken');
 
-      if (!refreshToken || !accessToken) return;
+    if (!refreshToken) return; // must have refresh token
 
-      try {
-        // First try to verify the existing token
-        const verifyRes = await axios.post(
-          `${API_BASE_URL}/api/admin/verify-token`,
-          { token: accessToken }
-        );
+    try {
+      let token = accessToken;
 
-        if (verifyRes.data?.valid) {
-          let admin = adminFromStorage;
-          if (!admin) {
-            admin = await fetchCurrentAdmin(accessToken);
-            if (admin) localStorage.setItem('adminData', JSON.stringify(admin));
-          }
-          if (!admin) return clearAuthStorage();
-
-          dispatch({
-            type: 'LOGIN_SUCCESS',
-            payload: { admin, accessToken, refreshToken },
-          });
-          return;
-        }
-
-        // If verification failed, try refreshing the token
-        const refreshRes = await axios.post(
-          `${API_BASE_URL}/api/admin/refresh-token`,
-          { token: refreshToken }
-        );
-
-        const newAccessToken = refreshRes.data.accessToken;
-        localStorage.setItem('adminAccessToken', newAccessToken);
-
-        let admin = adminFromStorage;
-        if (!admin) {
-          admin = await fetchCurrentAdmin(newAccessToken);
-          if (admin) localStorage.setItem('adminData', JSON.stringify(admin));
-        }
-        if (!admin) return clearAuthStorage();
-
-        dispatch({
-          type: 'LOGIN_SUCCESS',
-          payload: { admin, accessToken: newAccessToken, refreshToken },
-        });
-      } catch (error) {
-        console.error('Auth initialization error:', error);
-        clearAuthStorage();
+      // If no access token or it’s invalid, refresh it
+      if (!token) {
+        const refreshRes = await axios.post(`${API_BASE_URL}/api/admin/refresh-token`, { token: refreshToken });
+        token = refreshRes.data.accessToken;
+        localStorage.setItem('adminAccessToken', token);
       }
-    };
 
-    initAuth();
-  }, []);
+      // Fetch admin data
+      let admin = safeParse(localStorage.getItem('adminData'));
+      if (!admin) {
+        admin = await fetchCurrentAdmin(token);
+        if (admin) localStorage.setItem('adminData', JSON.stringify(admin));
+      }
+
+      if (!admin) return clearAuthStorage();
+
+      dispatch({ type: 'LOGIN_SUCCESS', payload: { admin, accessToken: token, refreshToken } });
+    } catch (error) {
+      console.error('Auth initialization error:', error);
+      clearAuthStorage();
+    }
+  };
+
+  initAuth();
+}, []);
+
 
   // --- Axios interceptors ---
   useEffect(() => {
@@ -164,11 +141,9 @@ export const AdminProvider = ({ children }) => {
         ) {
           originalRequest._retry = true;
           try {
-            const res = await axios.post(
-              `${API_BASE_URL}/api/admin/refresh-token`,
-              { token: state.refreshToken }
-            );
-
+            const res = await axios.post(`${API_BASE_URL}/api/admin/refresh-token`, {
+              token: state.refreshToken,
+            });
             const { accessToken } = res.data;
             localStorage.setItem('adminAccessToken', accessToken);
 
@@ -198,24 +173,15 @@ export const AdminProvider = ({ children }) => {
   const login = async (credentials) => {
     dispatch({ type: 'SET_LOADING' });
     try {
-      const res = await axios.post(
-        `${API_BASE_URL}/api/admin/login`,
-        credentials
-      );
+      const res = await axios.post(`${API_BASE_URL}/api/admin/login`, credentials);
       const { accessToken, refreshToken, admin } = res.data || {};
-      if (!accessToken || !refreshToken) {
-        throw new Error('Invalid login response');
-      }
+      if (!accessToken || !refreshToken) throw new Error('Invalid login response');
 
       localStorage.setItem('adminAccessToken', accessToken);
       localStorage.setItem('adminRefreshToken', refreshToken);
 
-      let currentAdmin = admin;
-      if (!currentAdmin) {
-        currentAdmin = await fetchCurrentAdmin(accessToken);
-      }
+      let currentAdmin = admin || (await fetchCurrentAdmin(accessToken));
       if (!currentAdmin) throw new Error('Unable to load admin profile');
-
       localStorage.setItem('adminData', JSON.stringify(currentAdmin));
 
       dispatch({
@@ -225,8 +191,7 @@ export const AdminProvider = ({ children }) => {
 
       return { admin: currentAdmin, accessToken, refreshToken };
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || error.message || 'Login failed';
+      const errorMessage = error.response?.data?.message || error.message || 'Login failed';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw new Error(errorMessage);
     }
@@ -255,20 +220,12 @@ export const AdminProvider = ({ children }) => {
       Object.entries(adminData).forEach(([k, v]) => formData.append(k, v));
       if (imageFile) formData.append('image', imageFile);
 
-      const res = await axios.post(
-        `${API_BASE_URL}/api/admin/register`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${state.accessToken}`,
-          },
-        }
-      );
+      const res = await axios.post(`${API_BASE_URL}/api/admin/register`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${state.accessToken}` },
+      });
       return res.data;
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || 'Registration failed';
+      const errorMessage = error.response?.data?.message || 'Registration failed';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw new Error(errorMessage);
     }
@@ -279,17 +236,12 @@ export const AdminProvider = ({ children }) => {
     dispatch({ type: 'SET_ADMIN_DATA', payload: data });
   };
 
-  const refreshToken = async () => {
+  const refreshAccessToken = async () => {
     if (!state.refreshToken) return null;
     try {
-      const res = await axios.post(`${API_BASE_URL}/api/admin/refresh-token`, {
-        token: state.refreshToken,
-      });
+      const res = await axios.post(`${API_BASE_URL}/api/admin/refresh-token`, { token: state.refreshToken });
       localStorage.setItem('adminAccessToken', res.data.accessToken);
-      dispatch({
-        type: 'REFRESH_TOKEN',
-        payload: { accessToken: res.data.accessToken },
-      });
+      dispatch({ type: 'REFRESH_TOKEN', payload: { accessToken: res.data.accessToken } });
       return res.data.accessToken;
     } catch (error) {
       await handleLogout();
@@ -299,25 +251,17 @@ export const AdminProvider = ({ children }) => {
 
   // --- CRUD Operations ---
   const createAdmin = async (adminData, imageFile) => {
-    try {
-      const formData = new FormData();
-      Object.entries(adminData).forEach(([k, v]) => formData.append(k, v));
-      if (imageFile) formData.append('image', imageFile);
+    const formData = new FormData();
+    Object.entries(adminData).forEach(([k, v]) => formData.append(k, v));
+    if (imageFile) formData.append('image', imageFile);
 
-      const res = await axios.post(
-        `${API_BASE_URL}/api/admin`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${state.accessToken}`,
-          },
-        }
-      );
+    try {
+      const res = await axios.post(`${API_BASE_URL}/api/admin`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${state.accessToken}` },
+      });
       return res.data;
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || 'Failed to create admin';
+      const errorMessage = error.response?.data?.message || 'Failed to create admin';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw new Error(errorMessage);
     }
@@ -325,39 +269,29 @@ export const AdminProvider = ({ children }) => {
 
   const getAdmin = async (adminId) => {
     try {
-      const res = await axios.get(
-        `${API_BASE_URL}/api/admin/${adminId}`,
-        { headers: { Authorization: `Bearer ${state.accessToken}` } }
-      );
+      const res = await axios.get(`${API_BASE_URL}/api/admin/${adminId}`, {
+        headers: { Authorization: `Bearer ${state.accessToken}` },
+      });
       return res.data;
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || 'Failed to fetch admin';
+      const errorMessage = error.response?.data?.message || 'Failed to fetch admin';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw new Error(errorMessage);
     }
   };
 
   const updateAdmin = async (adminId, adminData, imageFile) => {
-    try {
-      const formData = new FormData();
-      Object.entries(adminData).forEach(([k, v]) => formData.append(k, v));
-      if (imageFile) formData.append('image', imageFile);
+    const formData = new FormData();
+    Object.entries(adminData).forEach(([k, v]) => formData.append(k, v));
+    if (imageFile) formData.append('image', imageFile);
 
-      const res = await axios.put(
-        `${API_BASE_URL}/api/admin/${adminId}`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${state.accessToken}`,
-          },
-        }
-      );
+    try {
+      const res = await axios.put(`${API_BASE_URL}/api/admin/${adminId}`, formData, {
+        headers: { 'Content-Type': 'multipart/form-data', Authorization: `Bearer ${state.accessToken}` },
+      });
       return res.data;
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || 'Failed to update admin';
+      const errorMessage = error.response?.data?.message || 'Failed to update admin';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw new Error(errorMessage);
     }
@@ -365,14 +299,12 @@ export const AdminProvider = ({ children }) => {
 
   const deleteAdmin = async (adminId) => {
     try {
-      const res = await axios.delete(
-        `${API_BASE_URL}/api/admin/${adminId}`,
-        { headers: { Authorization: `Bearer ${state.accessToken}` } }
-      );
+      const res = await axios.delete(`${API_BASE_URL}/api/admin/${adminId}`, {
+        headers: { Authorization: `Bearer ${state.accessToken}` },
+      });
       return res.data;
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || 'Failed to delete admin';
+      const errorMessage = error.response?.data?.message || 'Failed to delete admin';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw new Error(errorMessage);
     }
@@ -386,8 +318,7 @@ export const AdminProvider = ({ children }) => {
       });
       return res.data;
     } catch (error) {
-      const errorMessage =
-        error.response?.data?.message || 'Failed to fetch admins';
+      const errorMessage = error.response?.data?.message || 'Failed to fetch admins';
       dispatch({ type: 'SET_ERROR', payload: errorMessage });
       throw new Error(errorMessage);
     }
@@ -400,7 +331,7 @@ export const AdminProvider = ({ children }) => {
     logout: handleLogout,
     registerAdmin,
     updateAdminData,
-    refreshToken,
+    refreshToken: refreshAccessToken,
     createAdmin,
     getAdmin,
     updateAdmin,
@@ -408,17 +339,11 @@ export const AdminProvider = ({ children }) => {
     listAdmins,
   };
 
-  return (
-    <AdminContext.Provider value={value}>
-      {children}
-    </AdminContext.Provider>
-  );
+  return <AdminContext.Provider value={value}>{children}</AdminContext.Provider>;
 };
 
 export const useAdmin = () => {
   const context = useContext(AdminContext);
-  if (!context) {
-    throw new Error('useAdmin must be used within an AdminProvider');
-  }
+  if (!context) throw new Error('useAdmin must be used within an AdminProvider');
   return context;
 };

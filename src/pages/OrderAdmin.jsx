@@ -203,11 +203,11 @@ useEffect(() => {
     if (!window.confirm('Are you sure you want to cancel this order?')) return;
     try {
       await axios.patch(
-        `${API_BASE_URL}/api/orders/${orderId}/cancel`,
+        `${API_BASE_URL}/api/orders/cancel/${orderId}`,
         {},
         {
           headers: {
-            Authorization: `Bearer ${localStorage.getItem('adminAccessToken')}`
+            Authorization: `Bearer ${localStorage.getItem('adminRefreshToken')}`
           }
         }
       );

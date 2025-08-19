@@ -247,6 +247,8 @@ export const UserProvider = ({ children }) => {
     await fetchUser();
   };
 
+  
+
   return (
     <UserContext.Provider
       value={{
@@ -274,3 +276,4 @@ export const UserProvider = ({ children }) => {
     </UserContext.Provider>
   );
 };
+
